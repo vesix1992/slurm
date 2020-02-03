@@ -5633,10 +5633,28 @@ static void _validate_ntasks_per_gpu(slurm_opt_t *opt)
 		fatal("SLURM_NTASKS_PER_NODE is mutually exclusive with --ntasks-per-gpu and SLURM_NTASKS_PER_GPU");
 }
 
+static void _validate_spec_cores_options(slurm_opt_t *opt)
+{
+	if (slurm_option_set_by_cli(opt, 'S') +
+	    slurm_option_set_by_cli(opt, LONG_OPT_THREAD_SPEC) > 1)
+		fatal("-S/--core-spec and --thred-spec options are mutually exclusive");
+	else if (slurm_option_set_by_env(opt, 'S') &&
+		 slurm_option_set_by_cli(opt, LONG_OPT_THREAD_SPEC))
+		slurm_option_reset(opt, 'S');
+	else if (slurm_option_set_by_cli(opt, 'S') &&
+		 slurm_option_set_by_env(opt, LONG_OPT_THREAD_SPEC))
+		slurm_option_reset(opt, LONG_OPT_THREAD_SPEC)
+	else if (slurm_option_set_by_env(opt, 'S') +
+		 slurm_option_set_by_env(opt, LONG_OPT_THREAD_SPEC) > 1)
+		fatal("Both --core-spec and --thread-spec set using environment variables. Those options are mutually exclusive.");
+
+}
+
 /* Validate shared options between srun, salloc, and sbatch */
 extern void validate_options_salloc_sbatch_srun(slurm_opt_t *opt)
 {
 	_validate_ntasks_per_gpu(opt);
+	_validate_spec_cores_options(opt);
 }
 
 extern char *slurm_option_get_argv_str(const int argc, char **argv)
