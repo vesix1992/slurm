@@ -5635,19 +5635,28 @@ static void _validate_ntasks_per_gpu(slurm_opt_t *opt)
 
 static void _validate_spec_cores_options(slurm_opt_t *opt)
 {
+	if (!slurm_option_isset(opt, "thread-spec") &&
+	    !slurm_option_isset(opt, "core-spec"))
+		return;
+
 	if (slurm_option_set_by_cli(opt, 'S') +
 	    slurm_option_set_by_cli(opt, LONG_OPT_THREAD_SPEC) > 1)
 		fatal("-S/--core-spec and --thred-spec options are mutually exclusive");
 	else if (slurm_option_set_by_env(opt, 'S') &&
 		 slurm_option_set_by_cli(opt, LONG_OPT_THREAD_SPEC))
-		slurm_option_reset(opt, 'S');
+		slurm_option_reset(opt, "core-spec");
 	else if (slurm_option_set_by_cli(opt, 'S') &&
 		 slurm_option_set_by_env(opt, LONG_OPT_THREAD_SPEC))
-		slurm_option_reset(opt, LONG_OPT_THREAD_SPEC)
+		slurm_option_reset(opt, "thread-spec");
 	else if (slurm_option_set_by_env(opt, 'S') +
 		 slurm_option_set_by_env(opt, LONG_OPT_THREAD_SPEC) > 1)
 		fatal("Both --core-spec and --thread-spec set using environment variables. Those options are mutually exclusive.");
 
+	if (!(slurm_conf.conf_flags & CTL_CONF_ASRU)) {
+		error("Ignoring %s since it's not allowed by configuration (AllowSpecResourcesUsage = No)",
+		      (opt->core_spec & CORE_SPEC_THREAD) ?
+		      "--thread-spec":"-S");
+	}
 }
 
 /* Validate shared options between srun, salloc, and sbatch */
