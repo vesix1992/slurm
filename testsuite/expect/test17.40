@@ -144,11 +144,52 @@ proc thread_spec_job {task node thread_spec exp_nodes} {
 	}
 }
 
+proc check_error {client option prog error} {
+	global sbatch salloc test_id
+	set cmd "$client -H -Jtest$test_id -t1 $option $prog"
+
+	set matches 0
+	set pid [spawn {*}$cmd]
+	expect {
+		-ex "$error" {
+			incr matches
+		}
+		timeout {
+			fail "$client not responding"
+		}
+		eof {
+			wait
+		}
+	}
+	subtest {$matches == 1} "Submission should return '$error'"
+}
+
+proc mutual_error_tests {} {
+	global sbatch salloc test_id
+
+	set clients [list "$sbatch" "$salloc"]
+	set options [list "--thread-spec=1 --core-spec=2" "--core-spec=1 --thread-spec=2"]
+	set error "mutually exclusive"
+
+	foreach client $clients {
+		set prog "hostname"
+		if {$client == $sbatch} {
+			set prog "--wrap=hostname"
+		}
+		foreach option $options {
+			check_error $client $option $prog $error
+		}
+	}
+}
+
 #############################################################################
 #
 # Tests begin here
 #
 #############################################################################
+
+# These tests can be run without below reqs since it is testing client side.
+mutual_error_tests
 
 if {[check_config_select "linear"]} {
 	skip "This test is incompatible with select/linear"
@@ -240,6 +281,8 @@ if {$thread_cnt == 0} {
 if {$thread_cnt < 4} {
 	skip "Thread thread too low for testing ($thread_cnt < 4)"
 }
+
+set env(SBATCH_CORE_SPEC) "99"
 
 #
 # Using the thread spec within the node limits
