@@ -116,6 +116,7 @@ COMMAND CHANGES (see man pages for details)
  -- slurmrestd - do not run allow operation as SlurmUser/root by default.
  -- "scontrol show node" now shows State as base_state+flags instead of
     shortened state with flags appended.
+ -- scrontab - added ability to set and expand variables.
 
 API CHANGES
 ===========
