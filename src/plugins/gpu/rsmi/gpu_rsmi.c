@@ -341,6 +341,9 @@ static void _rsmi_print_freqs(uint32_t dv_ind)
 	bool concise = false;
 	unsigned int i;
 
+	if (!(slurm_conf.debug_flags & DEBUG_FLAG_GRES))
+		return;
+
 	if (!_rsmi_get_mem_freqs(dv_ind, &size, mem_freqs))
 		return;
 
