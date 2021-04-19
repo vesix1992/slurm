@@ -338,8 +338,6 @@ static void _rsmi_print_freqs(uint32_t dv_ind)
 	unsigned int mem_freqs[RSMI_MAX_NUM_FREQUENCIES] = {0};
 	unsigned int gfx_freqs[RSMI_MAX_NUM_FREQUENCIES] = {0};
 	unsigned int size = RSMI_MAX_NUM_FREQUENCIES;
-	bool concise = false;
-	unsigned int i;
 
 	if (!(slurm_conf.debug_flags & DEBUG_FLAG_GRES))
 		return;
@@ -355,27 +353,10 @@ static void _rsmi_print_freqs(uint32_t dv_ind)
 		return;
 	}
 
-	if (size > FREQS_CONCISE)
-		concise = true;
-
 	log_flag(GRES, "Possible GPU Memory Frequencies (%u):", size);
 	log_flag(GRES, "---------------------------------");
-	if (!concise) {
-		for (i = 0; i < size; ++i)
-			log_flag(GRES, "  *%u MHz [%u]", mem_freqs[i], i);
-	} else {
-		// first, next, ..., middle, ..., penultimate, last
-		log_flag(GRES, "  *%u MHz [0]", mem_freqs[0]);
-		log_flag(GRES, "  *%u MHz [1]", mem_freqs[1]);
-		log_flag(GRES, "  ...");
-		log_flag(GRES, "  *%u MHz [%u]", mem_freqs[(size - 1) / 2],
-			(size - 1) / 2);
-		log_flag(GRES, "  ...");
-		log_flag(GRES, "  *%u MHz [%u]",
-			mem_freqs[size - 2], size - 2);
-		log_flag(GRES, "  *%u MHz [%u]",
-			mem_freqs[size - 1], size - 1);
-	}
+	for (unsigned int i = 0; i < size; ++i)
+		log_flag(GRES, "  *%u MHz [%u]", mem_freqs[i], i);
 
 	size = RSMI_MAX_NUM_FREQUENCIES;
 	if (!_rsmi_get_gfx_freqs(dv_ind, &size, gfx_freqs))
@@ -389,25 +370,10 @@ static void _rsmi_print_freqs(uint32_t dv_ind)
 		return;
 	}
 
-	if (size > FREQS_CONCISE)
-		concise = true;
-
 	log_flag(GRES, "Possible GPU Graphics Frequencies (%u):", size);
 	log_flag(GRES, "---------------------------------");
-	if (!concise) {
-		for (i = 0; i < size; ++i)
-			log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[i], i);
-		return;
-	}
-	// first, next, ..., middle, ..., penultimate, last
-	log_flag(GRES, "  *%u MHz [0]", gfx_freqs[0]);
-	log_flag(GRES, "  *%u MHz [1]", gfx_freqs[1]);
-	log_flag(GRES, "  ...");
-	log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[(size - 1) / 2],
-		(size - 1) / 2);
-	log_flag(GRES, "  ...");
-	log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[size - 2], size - 2);
-	log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[size - 1], size - 1);
+	for (unsigned int i = 0; i < size; ++i)
+		log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[i], i);
 }
 
 /*
