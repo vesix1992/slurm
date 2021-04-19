@@ -417,48 +417,27 @@ static bool _nvml_get_gfx_freqs(nvmlDevice_t device,
 }
 
 /*
- * Print out all possible graphics frequencies for the given device and mem
- * freq. If there are many frequencies, only prints out a few.
+ * Print out possible graphics frequencies for the given device and mem freq.
  *
  * device		(IN) The device handle
  * mem_freq		(IN) The memory frequency to get graphics freqs for.
- * gfx_freqs_size	(IN) The size of the gfx_freqs array
- * gfx_freqs		(IN) A preallocated empty array of size gfx_freqs_size
- * 			to fill with possible graphics frequencies
- *
- * NOTE: The contents of gfx_freqs will be modified during use.
  */
-static void _nvml_print_gfx_freqs(nvmlDevice_t device, unsigned int mem_freq,
-				  unsigned int gfx_freqs_size,
-				  unsigned int *gfx_freqs)
+static void _nvml_print_gfx_freqs(nvmlDevice_t device, unsigned int mem_freq)
 {
-	unsigned int size = gfx_freqs_size;
-	bool concise = false;
-	unsigned int i;
+	unsigned int gfx_size = FREQS_SIZE;
+	unsigned int gfx_freqs[FREQS_SIZE] = {0};
+	char *list = NULL;
 
-	if (!_nvml_get_gfx_freqs(device, mem_freq, &size, gfx_freqs))
+	if (!_nvml_get_gfx_freqs(device, mem_freq, &gfx_size, gfx_freqs))
 		return;
 
-	if (size > FREQS_CONCISE)
-		concise = true;
+	for (unsigned int i = 0; i < gfx_size; ++i)
+		xstrfmtcat(list, "%s%u", (list ? "," : ""), gfx_freqs[i]);
 
-	log_flag(GRES, "Possible GPU Graphics Frequencies (%u):", size);
-	log_flag(GRES, "---------------------------------");
-	if (!concise) {
-		for (i = 0; i < size; ++i) {
-			log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[i], i);
-		}
-		return;
-	}
-	// first, next, ..., middle, ..., penultimate, last
-	log_flag(GRES, "  *%u MHz [0]", gfx_freqs[0]);
-	log_flag(GRES, "  *%u MHz [1]", gfx_freqs[1]);
-	log_flag(GRES, "  ...");
-	log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[(size - 1) / 2],
-	     (size - 1) / 2);
-	log_flag(GRES, "  ...");
-	log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[size - 2], size - 2);
-	log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[size - 1], size - 1);
+	log_flag(GRES, "Possible GPU Graphics Frequencies for Memory Frequency %u MHz: %s MHz (%u total)",
+		 mem_freq, list, gfx_size);
+
+	xfree(list);
 }
 
 /*
@@ -472,8 +451,7 @@ static void _nvml_print_freqs(nvmlDevice_t device)
 	unsigned int mem_size = FREQS_SIZE;
 	unsigned int mem_freqs[FREQS_SIZE] = {0};
 	unsigned int gfx_freqs[FREQS_SIZE] = {0};
-	unsigned int i;
-	bool concise = false;
+	char *list = NULL;
 
 	if (!(slurm_conf.debug_flags & DEBUG_FLAG_GRES))
 		return;
@@ -481,42 +459,14 @@ static void _nvml_print_freqs(nvmlDevice_t device)
 	if (!_nvml_get_mem_freqs(device, &mem_size, mem_freqs))
 		return;
 
-	if (mem_size > FREQS_CONCISE)
-		concise = true;
+	for (unsigned int i = 0; i < mem_size; ++i)
+		xstrfmtcat(list, "%s%u", (list ? "," : ""), gfx_freqs[i]);
+	log_flag(GRES, "Possible GPU Memory Frequencies: %s (%u total)",
+		 list, mem_size);
+	xfree(list);
 
-	log_flag(GRES, "Possible GPU Memory Frequencies (%u):", mem_size);
-	log_flag(GRES, "-------------------------------");
-	if (concise) {
-		// first, next, ..., middle, ..., penultimate, last
-		unsigned int tmp;
-		log_flag(GRES, "    *%u MHz [0]", mem_freqs[0]);
-		_nvml_print_gfx_freqs(device, mem_freqs[0], FREQS_SIZE,
-				      gfx_freqs, l);
-		log_flag(GRES, "    *%u MHz [1]", mem_freqs[1]);
-		_nvml_print_gfx_freqs(device, mem_freqs[1], FREQS_SIZE,
-				      gfx_freqs, l);
-		log_flag(GRES, "    ...");
-		tmp = (mem_size - 1) / 2;
-		log_flag(GRES, "    *%u MHz [%u]", mem_freqs[tmp], tmp);
-		_nvml_print_gfx_freqs(device, mem_freqs[tmp], FREQS_SIZE,
-				      gfx_freqs, l);
-		log_flag(GRES, "    ...");
-		tmp = mem_size - 2;
-		log_flag(GRES, "    *%u MHz [%u]", mem_freqs[tmp], tmp);
-		_nvml_print_gfx_freqs(device, mem_freqs[tmp], FREQS_SIZE,
-				      gfx_freqs, l);
-		tmp = mem_size - 1;
-		log_flag(GRES, "    *%u MHz [%u]", mem_freqs[tmp], tmp);
-		_nvml_print_gfx_freqs(device, mem_freqs[tmp], FREQS_SIZE,
-				      gfx_freqs, l);
-		return;
-	}
-
-	for (i = 0; i < mem_size; ++i) {
-		log_flag(GRES,"    *%u MHz [%u]", mem_freqs[i], i);
-		_nvml_print_gfx_freqs(device, mem_freqs[i], FREQS_SIZE,
-				      gfx_freqs);
-	}
+	for (unsigned int i = 0; i < mem_size; ++i)
+		_nvml_print_gfx_freqs(device, mem_freqs[i]);
 }
 
 /*
