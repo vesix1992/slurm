@@ -333,7 +333,7 @@ static bool _rsmi_get_gfx_freqs(uint32_t dv_ind,
  * dv_ind (IN) The device index
  * l      (IN) The log level at which to print
  */
-static void _rsmi_print_freqs(uint32_t dv_ind, log_level_t l)
+static void _rsmi_print_freqs(uint32_t dv_ind)
 {
 	unsigned int mem_freqs[RSMI_MAX_NUM_FREQUENCIES] = {0};
 	unsigned int gfx_freqs[RSMI_MAX_NUM_FREQUENCIES] = {0};
@@ -355,22 +355,22 @@ static void _rsmi_print_freqs(uint32_t dv_ind, log_level_t l)
 	if (size > FREQS_CONCISE)
 		concise = true;
 
-	log_var(l, "        Possible GPU Memory Frequencies (%u):", size);
-	log_var(l, "        ---------------------------------");
+	log_flag(GRES, "Possible GPU Memory Frequencies (%u):", size);
+	log_flag(GRES, "---------------------------------");
 	if (!concise) {
 		for (i = 0; i < size; ++i)
-			log_var(l, "          *%u MHz [%u]", mem_freqs[i], i);
+			log_flag(GRES, "  *%u MHz [%u]", mem_freqs[i], i);
 	} else {
 		// first, next, ..., middle, ..., penultimate, last
-		log_var(l, "          *%u MHz [0]", mem_freqs[0]);
-		log_var(l, "          *%u MHz [1]", mem_freqs[1]);
-		log_var(l, "          ...");
-		log_var(l, "          *%u MHz [%u]", mem_freqs[(size - 1) / 2],
+		log_flag(GRES, "  *%u MHz [0]", mem_freqs[0]);
+		log_flag(GRES, "  *%u MHz [1]", mem_freqs[1]);
+		log_flag(GRES, "  ...");
+		log_flag(GRES, "  *%u MHz [%u]", mem_freqs[(size - 1) / 2],
 			(size - 1) / 2);
-		log_var(l, "          ...");
-		log_var(l, "          *%u MHz [%u]",
+		log_flag(GRES, "  ...");
+		log_flag(GRES, "  *%u MHz [%u]",
 			mem_freqs[size - 2], size - 2);
-		log_var(l, "          *%u MHz [%u]",
+		log_flag(GRES, "  *%u MHz [%u]",
 			mem_freqs[size - 1], size - 1);
 	}
 
@@ -389,22 +389,22 @@ static void _rsmi_print_freqs(uint32_t dv_ind, log_level_t l)
 	if (size > FREQS_CONCISE)
 		concise = true;
 
-	log_var(l, "        Possible GPU Graphics Frequencies (%u):", size);
-	log_var(l, "        ---------------------------------");
+	log_flag(GRES, "Possible GPU Graphics Frequencies (%u):", size);
+	log_flag(GRES, "---------------------------------");
 	if (!concise) {
 		for (i = 0; i < size; ++i)
-			log_var(l, "          *%u MHz [%u]", gfx_freqs[i], i);
+			log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[i], i);
 		return;
 	}
 	// first, next, ..., middle, ..., penultimate, last
-	log_var(l, "          *%u MHz [0]", gfx_freqs[0]);
-	log_var(l, "          *%u MHz [1]", gfx_freqs[1]);
-	log_var(l, "          ...");
-	log_var(l, "          *%u MHz [%u]", gfx_freqs[(size - 1) / 2],
+	log_flag(GRES, "  *%u MHz [0]", gfx_freqs[0]);
+	log_flag(GRES, "  *%u MHz [1]", gfx_freqs[1]);
+	log_flag(GRES, "  ...");
+	log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[(size - 1) / 2],
 		(size - 1) / 2);
-	log_var(l, "          ...");
-	log_var(l, "          *%u MHz [%u]", gfx_freqs[size - 2], size - 2);
-	log_var(l, "          *%u MHz [%u]", gfx_freqs[size - 1], size - 1);
+	log_flag(GRES, "  ...");
+	log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[size - 2], size - 2);
+	log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[size - 1], size - 1);
 }
 
 /*
@@ -1096,7 +1096,7 @@ static List _get_system_gpu_list_rsmi(node_config_load_t *node_config)
 			      i, minor_number);
 
 		// Print out possible memory frequencies for this device
-		_rsmi_print_freqs(i, LOG_LEVEL_DEBUG2);
+		_rsmi_print_freqs(i);
 
 		add_gres_to_list(gres_list_system, "gpu", 1,
 				 node_config->cpu_cnt, NULL, NULL,
