@@ -475,6 +475,9 @@ static void _nvml_print_freqs(nvmlDevice_t device)
 	unsigned int i;
 	bool concise = false;
 
+	if (!(slurm_conf.debug_flags & DEBUG_FLAG_GRES))
+		return;
+
 	if (!_nvml_get_mem_freqs(device, &mem_size, mem_freqs))
 		return;
 
