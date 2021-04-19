@@ -425,13 +425,12 @@ static bool _nvml_get_gfx_freqs(nvmlDevice_t device,
  * gfx_freqs_size	(IN) The size of the gfx_freqs array
  * gfx_freqs		(IN) A preallocated empty array of size gfx_freqs_size
  * 			to fill with possible graphics frequencies
- * l			(IN) The log level at which to print
  *
  * NOTE: The contents of gfx_freqs will be modified during use.
  */
 static void _nvml_print_gfx_freqs(nvmlDevice_t device, unsigned int mem_freq,
 				  unsigned int gfx_freqs_size,
-				  unsigned int *gfx_freqs, log_level_t l)
+				  unsigned int *gfx_freqs)
 {
 	unsigned int size = gfx_freqs_size;
 	bool concise = false;
@@ -443,23 +442,23 @@ static void _nvml_print_gfx_freqs(nvmlDevice_t device, unsigned int mem_freq,
 	if (size > FREQS_CONCISE)
 		concise = true;
 
-	log_var(l, "        Possible GPU Graphics Frequencies (%u):", size);
-	log_var(l, "        ---------------------------------");
+	log_flag(GRES, "Possible GPU Graphics Frequencies (%u):", size);
+	log_flag(GRES, "---------------------------------");
 	if (!concise) {
 		for (i = 0; i < size; ++i) {
-			log_var(l, "          *%u MHz [%u]", gfx_freqs[i], i);
+			log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[i], i);
 		}
 		return;
 	}
 	// first, next, ..., middle, ..., penultimate, last
-	log_var(l, "          *%u MHz [0]", gfx_freqs[0]);
-	log_var(l, "          *%u MHz [1]", gfx_freqs[1]);
-	log_var(l, "          ...");
-	log_var(l, "          *%u MHz [%u]", gfx_freqs[(size - 1) / 2],
+	log_flag(GRES, "  *%u MHz [0]", gfx_freqs[0]);
+	log_flag(GRES, "  *%u MHz [1]", gfx_freqs[1]);
+	log_flag(GRES, "  ...");
+	log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[(size - 1) / 2],
 	     (size - 1) / 2);
-	log_var(l, "          ...");
-	log_var(l, "          *%u MHz [%u]", gfx_freqs[size - 2], size - 2);
-	log_var(l, "          *%u MHz [%u]", gfx_freqs[size - 1], size - 1);
+	log_flag(GRES, "  ...");
+	log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[size - 2], size - 2);
+	log_flag(GRES, "  *%u MHz [%u]", gfx_freqs[size - 1], size - 1);
 }
 
 /*
@@ -467,9 +466,8 @@ static void _nvml_print_gfx_freqs(nvmlDevice_t device, unsigned int mem_freq,
  * If there are more than FREQS_SIZE frequencies, prints a summary instead
  *
  * device	(IN) The device handle
- * l		(IN) The log level at which to print
  */
-static void _nvml_print_freqs(nvmlDevice_t device, log_level_t l)
+static void _nvml_print_freqs(nvmlDevice_t device)
 {
 	unsigned int mem_size = FREQS_SIZE;
 	unsigned int mem_freqs[FREQS_SIZE] = {0};
@@ -483,38 +481,38 @@ static void _nvml_print_freqs(nvmlDevice_t device, log_level_t l)
 	if (mem_size > FREQS_CONCISE)
 		concise = true;
 
-	log_var(l, "Possible GPU Memory Frequencies (%u):", mem_size);
-	log_var(l, "-------------------------------");
+	log_flag(GRES, "Possible GPU Memory Frequencies (%u):", mem_size);
+	log_flag(GRES, "-------------------------------");
 	if (concise) {
 		// first, next, ..., middle, ..., penultimate, last
 		unsigned int tmp;
-		log_var(l, "    *%u MHz [0]", mem_freqs[0]);
+		log_flag(GRES, "    *%u MHz [0]", mem_freqs[0]);
 		_nvml_print_gfx_freqs(device, mem_freqs[0], FREQS_SIZE,
 				      gfx_freqs, l);
-		log_var(l, "    *%u MHz [1]", mem_freqs[1]);
+		log_flag(GRES, "    *%u MHz [1]", mem_freqs[1]);
 		_nvml_print_gfx_freqs(device, mem_freqs[1], FREQS_SIZE,
 				      gfx_freqs, l);
-		log_var(l, "    ...");
+		log_flag(GRES, "    ...");
 		tmp = (mem_size - 1) / 2;
-		log_var(l, "    *%u MHz [%u]", mem_freqs[tmp], tmp);
+		log_flag(GRES, "    *%u MHz [%u]", mem_freqs[tmp], tmp);
 		_nvml_print_gfx_freqs(device, mem_freqs[tmp], FREQS_SIZE,
 				      gfx_freqs, l);
-		log_var(l, "    ...");
+		log_flag(GRES, "    ...");
 		tmp = mem_size - 2;
-		log_var(l, "    *%u MHz [%u]", mem_freqs[tmp], tmp);
+		log_flag(GRES, "    *%u MHz [%u]", mem_freqs[tmp], tmp);
 		_nvml_print_gfx_freqs(device, mem_freqs[tmp], FREQS_SIZE,
 				      gfx_freqs, l);
 		tmp = mem_size - 1;
-		log_var(l, "    *%u MHz [%u]", mem_freqs[tmp], tmp);
+		log_flag(GRES, "    *%u MHz [%u]", mem_freqs[tmp], tmp);
 		_nvml_print_gfx_freqs(device, mem_freqs[tmp], FREQS_SIZE,
 				      gfx_freqs, l);
 		return;
 	}
 
 	for (i = 0; i < mem_size; ++i) {
-		log_var(l,"    *%u MHz [%u]", mem_freqs[i], i);
+		log_flag(GRES,"    *%u MHz [%u]", mem_freqs[i], i);
 		_nvml_print_gfx_freqs(device, mem_freqs[i], FREQS_SIZE,
-				      gfx_freqs, l);
+				      gfx_freqs);
 	}
 }
 
@@ -1318,7 +1316,7 @@ static List _get_system_gpu_list_nvml(node_config_load_t *node_config)
 		debug2("    Core Affinity Range - Abstract: %s",
 		       cpu_aff_abs_range);
 		// Print out possible memory frequencies for this device
-		_nvml_print_freqs(device, LOG_LEVEL_DEBUG2);
+		_nvml_print_freqs(device);
 
 		add_gres_to_list(gres_list_system, "gpu", 1,
 				 node_config->cpu_cnt, cpu_aff_abs_range,
