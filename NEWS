@@ -81,6 +81,7 @@ documents those changes that are of interest to users and administrators.
     to the SLURM_CONF environment variable).
  -- SPANK - call slurm_spank_init if defined without slurm_spank_slurmd_exit in
     slurmd context.
+ -- Enable node-features-helpers plugin for handling dynamic features
 
 * Changes in Slurm 20.11.8
 ==========================
