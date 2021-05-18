@@ -541,6 +541,7 @@ extern void node_features_p_node_state(char **avail_modes, char **current_mode)
 	verbose("original: avail=%s current=%s",
 		*avail_modes, *current_mode);
 
+	/* FIXME: probably not necessary, xstrfmtcat() can deal with this, and multiple active node_features plugins may step on each other */
 	if (*avail_modes == NULL)
 		*avail_modes = xstrdup("");
 	if (*current_mode == NULL)
