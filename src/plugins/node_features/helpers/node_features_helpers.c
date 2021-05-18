@@ -55,7 +55,7 @@ const uint32_t plugin_version = SLURM_VERSION_NUMBER;
 static uid_t *allowed_uid = NULL;
 static int allowed_uid_cnt = 0;
 
-typedef struct plugin_feature {
+typedef struct {
 	const char *name;
 	const char *helper;
 } plugin_feature_t;
@@ -81,7 +81,7 @@ static int cmp_str(void *x, void *key)
 
 static int cmp_features(void *x, void *key)
 {
-	struct plugin_feature *feature = x;
+	plugin_feature_t *feature = x;
 	return strcmp(feature->name, key) == 0;
 }
 
@@ -195,7 +195,7 @@ fail:
 	return rc;
 }
 
-static int feature_set_state(const struct plugin_feature *feature)
+static int feature_set_state(const plugin_feature_t *feature)
 {
 	char *command = NULL;
 	int rc = SLURM_ERROR;
@@ -216,7 +216,7 @@ fail:
 	return rc;
 }
 
-static List feature_get_state(const struct plugin_feature *feature)
+static List feature_get_state(const plugin_feature_t *feature)
 {
 	char *tmp, *kv;
 	char *output = NULL;
@@ -380,7 +380,7 @@ static int read_config_file(void)
 	}
 
 	for (int i = 0; i < count; ++i) {
-		const struct plugin_feature *feature = features[i];
+		const plugin_feature_t *feature = features[i];
 		if (feature_register(feature->name, feature->helper) != SLURM_SUCCESS)
 			continue;
 	}
@@ -480,7 +480,7 @@ static int _count_exclusivity(char *job_features, List exclusive_list)
 int node_features_p_job_valid(char *job_features)
 {
 	ListIterator fit = NULL;
-	struct plugin_feature *feature = NULL;
+	plugin_feature_t *feature = NULL;
 	List exclusive_list;
 	char *name = NULL;
 	int rc = SLURM_ERROR;
@@ -556,7 +556,7 @@ fail:
 void node_features_p_node_state(char **avail_modes, char **current_mode)
 {
 	ListIterator fit = NULL;
-	struct plugin_feature *feature = NULL;
+	plugin_feature_t *feature = NULL;
 	List all_current = NULL;
 	char *value;
 
@@ -683,7 +683,7 @@ bool node_features_p_node_power(void)
 	return false;
 }
 
-static char *_make_helper_str(const struct plugin_feature *feature)
+static char *_make_helper_str(const plugin_feature_t *feature)
 {
 	char *str = NULL;
 	/* Format: "Name Helper=<path>" */
@@ -732,7 +732,7 @@ static char *_make_uid_str(uid_t *uid_array, int uid_cnt)
 void node_features_p_get_config(config_plugin_params_t *p)
 {
 	ListIterator fit = NULL;
-	struct plugin_feature *feature;
+	plugin_feature_t *feature;
 	config_key_pair_t *key_pair;
 	List data;
 	List exclusive;
