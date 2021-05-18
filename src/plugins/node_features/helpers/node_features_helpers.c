@@ -138,7 +138,7 @@ static plugin_feature_t *_feature_create(const char *name, const char *helper)
 	return feature;
 }
 
-static void feature_destroy(plugin_feature_t *feature)
+static void _feature_destroy(plugin_feature_t *feature)
 {
 	if (feature == NULL)
 		return;
@@ -252,7 +252,7 @@ static int feature_register(const char *name, const char *helper)
 	list_append(context.features, feature);
 	feature = NULL;
 
-	feature_destroy(feature);
+	_feature_destroy(feature);
 	return SLURM_SUCCESS;
 }
 
@@ -322,7 +322,7 @@ static int parse_exclusives(void **data, slurm_parser_enum_t type,
 }
 
 static s_p_options_t conf_options[] = {
-	{"Feature", S_P_ARRAY, parse_feature, (ListDelF) feature_destroy},
+	{"Feature", S_P_ARRAY, parse_feature, (ListDelF) _feature_destroy},
 	{"BootTime", S_P_UINT32},
 	{"MutuallyExclusive", S_P_ARRAY, parse_exclusives, xfree_ptr},
 	{"NodeRebootWeight", S_P_UINT32},
@@ -347,7 +347,7 @@ static int read_config_file(void)
 		list_destroy(context.features);
 		context.features = NULL;
 	}
-	context.features = list_create((ListDelF) feature_destroy);
+	context.features = list_create((ListDelF) _feature_destroy);
 
 	if (context.exclusives != NULL) {
 		list_destroy(context.exclusives);
