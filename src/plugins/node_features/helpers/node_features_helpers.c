@@ -66,13 +66,13 @@ typedef struct {
 
 static int _cmp_str(void *x, void *key)
 {
-	return strcmp(x, key) == 0;
+	return !strcmp(x, key);
 }
 
 static int _cmp_features(void *x, void *key)
 {
 	plugin_feature_t *feature = x;
-	return strcmp(feature->name, key) == 0;
+	return !strcmp(feature->name, key);
 }
 
 static bool _is_feature_valid(const char *k)
@@ -287,7 +287,7 @@ static int parse_feature(void **data, slurm_parser_enum_t type,
 	}
 
 	tbl = s_p_hashtbl_create(feature_options);
-	if (s_p_parse_line(tbl, *leftover, leftover) == 0)
+	if (!s_p_parse_line(tbl, *leftover, leftover))
 		goto fail;
 
 	s_p_get_string(&path, "Helper", tbl);
@@ -348,7 +348,7 @@ static int _read_config_file(void)
 	}
 	xfree(confpath);
 
-	if (s_p_get_array(&features, &count, "Feature", tbl) == 0) {
+	if (!s_p_get_array(&features, &count, "Feature", tbl)) {
 		error("no \"Feature\" entry in configuration file %s",
 		      confpath);
 		goto fail;
