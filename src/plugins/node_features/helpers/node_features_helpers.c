@@ -377,12 +377,14 @@ static int _read_config_file(void)
 
 	for (int i = 0; i < count; ++i) {
 		const plugin_feature_t *feature = features[i];
+		/* FIXME: error handling? */
 		if (feature_register(feature->name, feature->helper) != SLURM_SUCCESS)
 			continue;
 	}
 
 	if (s_p_get_array(&exclusives, &count, "MutuallyExclusive", tbl) != 0) {
 		for (int i = 0; i < count; ++i) {
+			/* FIXME: error handling? */
 			if (exclusive_register(exclusives[i]) != SLURM_SUCCESS)
 				continue;
 		}
