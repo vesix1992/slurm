@@ -79,7 +79,7 @@ static int _cmp_str(void *x, void *key)
 	return strcmp(x, key) == 0;
 }
 
-static int cmp_features(void *x, void *key)
+static int _cmp_features(void *x, void *key)
 {
 	plugin_feature_t *feature = x;
 	return strcmp(feature->name, key) == 0;
@@ -243,7 +243,8 @@ static int feature_register(const char *name, const char *helper)
 	const plugin_feature_t *existing;
 	plugin_feature_t *feature = NULL;
 
-	existing = list_find_first(context.features, cmp_features, (char*)name);
+	existing = list_find_first(context.features, _cmp_features,
+				   (char *) name);
 	if (existing != NULL) {
 		error("feature \"%s\" previously registered with helper \"%s\"",
 		      name, existing->helper);
@@ -436,7 +437,7 @@ bool node_features_p_changeable_feature(char *input)
 {
 	plugin_feature_t *feature = NULL;
 
-	feature = list_find_first(context.features, cmp_features, input);
+	feature = list_find_first(context.features, _cmp_features, input);
 	if (feature == NULL)
 		return false;
 
@@ -535,7 +536,7 @@ int node_features_p_node_set(char *active_features)
 	tmp = input;
 	while ((kv = strsep(&tmp, "&"))) {
 
-		feature = list_find_first(context.features, cmp_features, kv);
+		feature = list_find_first(context.features, _cmp_features, kv);
 		if (feature == NULL) {
 			info("skipping unregistered feature \"%s\"", kv);
 			continue;
@@ -589,7 +590,7 @@ void node_features_p_node_state(char **avail_modes, char **current_mode)
 		curfit = list_iterator_create(current);
 		while ((value = list_next(curfit))) {
 			/* Verify registered mode, parse out garbage */
-			if (!list_find_first(context.features, cmp_features, value))
+			if (!list_find_first(context.features, _cmp_features, value))
 				continue;
 
 			/* check that this mode is not already in list of current modes */
