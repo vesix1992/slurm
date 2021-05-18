@@ -190,7 +190,7 @@ fail:
 	return rc;
 }
 
-static int feature_set_state(const plugin_feature_t *feature)
+static int _feature_set_state(const plugin_feature_t *feature)
 {
 	char *command = NULL;
 	int rc = SLURM_ERROR;
@@ -211,7 +211,7 @@ fail:
 	return rc;
 }
 
-static List feature_get_state(const plugin_feature_t *feature)
+static List _feature_get_state(const plugin_feature_t *feature)
 {
 	char *tmp, *kv;
 	char *output = NULL;
@@ -539,7 +539,7 @@ int node_features_p_node_set(char *active_features)
 			continue;
 		}
 
-		if (feature_set_state(feature) != SLURM_SUCCESS)
+		if (_feature_set_state(feature) != SLURM_SUCCESS)
 			goto fail;
 	}
 
@@ -576,7 +576,7 @@ void node_features_p_node_state(char **avail_modes, char **current_mode)
 	fit = list_iterator_create(context.features);
 	while ((feature = list_next(fit))) {
 		ListIterator curfit = NULL;
-		List current = feature_get_state(feature);
+		List current = _feature_get_state(feature);
 
 		xstrfmtcat(*avail_modes, "%s%s",
 			(*avail_modes[0] ? "," : ""), feature->name);
