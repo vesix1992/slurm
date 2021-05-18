@@ -54,25 +54,15 @@ const uint32_t plugin_version = SLURM_VERSION_NUMBER;
 
 static uid_t *allowed_uid = NULL;
 static int allowed_uid_cnt = 0;
+static List helper_features = NULL;
+static List helper_exclusives = NULL;
+static uint32_t boot_time = (5 * 60);
+static uint32_t node_reboot_weight = (INFINITE - 1);
 
 typedef struct {
 	const char *name;
 	const char *helper;
 } plugin_feature_t;
-
-typedef struct plugin_context {
-	List features;
-	List exclusives;
-	uint32_t boot_time;
-	uint32_t node_reboot_weight;
-} plugin_context_t;
-
-static plugin_context_t context = {
-	.features = NULL,
-	.exclusives = NULL,
-	.boot_time = (5 * 60),
-	.node_reboot_weight = (INFINITE - 1),
-};
 
 static int _cmp_str(void *x, void *key)
 {
@@ -238,7 +228,7 @@ static int feature_register(const char *name, const char *helper)
 	const plugin_feature_t *existing;
 	plugin_feature_t *feature = NULL;
 
-	existing = list_find_first(context.features, _cmp_features,
+	existing = list_find_first(helper_features, _cmp_features,
 				   (char *) name);
 	if (existing != NULL) {
 		error("feature \"%s\" previously registered with helper \"%s\"",
@@ -249,7 +239,7 @@ static int feature_register(const char *name, const char *helper)
 	feature = _feature_create(name, helper);
 
 	info("adding new feature \"%s\"", feature->name);
-	list_append(context.features, feature);
+	list_append(helper_features, feature);
 	feature = NULL;
 
 	_feature_destroy(feature);
@@ -274,7 +264,7 @@ static int exclusive_register(const char *listp)
 
 	xfree(input);
 
-	list_append(context.exclusives, data_list);
+	list_append(helper_exclusives, data_list);
 
 	return SLURM_SUCCESS;
 }
@@ -343,11 +333,11 @@ static int _read_config_file(void)
 	xfree(allowed_uid);
 	allowed_uid_cnt = 0;
 
-	FREE_NULL_LIST(context.features);
-	context.features = list_create((ListDelF) _feature_destroy);
+	FREE_NULL_LIST(helper_features);
+	helper_features = list_create((ListDelF) _feature_destroy);
 
-	FREE_NULL_LIST(context.exclusives);
-	context.exclusives = list_create(_exclusives_destroy);
+	FREE_NULL_LIST(helper_exclusives);
+	helper_exclusives = list_create(_exclusives_destroy);
 
 	tbl = s_p_hashtbl_create(conf_options);
 
@@ -384,14 +374,13 @@ static int _read_config_file(void)
 		}
 	}
 
-	if (s_p_get_uint32(&context.boot_time, "BootTime", tbl) == 0)
+	if (!s_p_get_uint32(&boot_time, "BootTime", tbl))
 		info("BootTime not specified, using default value: %u",
-		     context.boot_time);
+		     boot_time);
 
-	if (s_p_get_uint32(&context.node_reboot_weight,
-				"NodeRebootWeight", tbl) == 0)
+	if (!s_p_get_uint32(&node_reboot_weight, "NodeRebootWeight", tbl))
 		info("NodeRebootWeight not specified, using default value: %u",
-		     context.node_reboot_weight);
+		     node_reboot_weight);
 
 	rc = SLURM_SUCCESS;
 
@@ -408,8 +397,8 @@ extern int init(void)
 
 extern int fini(void)
 {
-	FREE_NULL_LIST(context.features);
-	FREE_NULL_LIST(context.exclusives);
+	FREE_NULL_LIST(helper_features);
+	FREE_NULL_LIST(helper_exclusives);
 	xfree(allowed_uid);
 	allowed_uid_cnt = 0;
 
@@ -420,7 +409,7 @@ extern bool node_features_p_changeable_feature(char *input)
 {
 	plugin_feature_t *feature = NULL;
 
-	feature = list_find_first(context.features, _cmp_features, input);
+	feature = list_find_first(helper_features, _cmp_features, input);
 	if (feature == NULL)
 		return false;
 
@@ -474,7 +463,7 @@ extern int node_features_p_job_valid(char *job_features)
 
 	/* FIXME: replace with a list_find_first() call */
 	/* Check the mutually exclusive lists */
-	fit = list_iterator_create(context.exclusives);
+	fit = list_iterator_create(helper_exclusives);
 	while ((exclusive_list = list_next(fit))) {
 		if (_count_exclusivity(job_features, exclusive_list) > 1) {
 			error("job requests mutually exclusive features");
@@ -490,7 +479,7 @@ extern int node_features_p_job_valid(char *job_features)
 	/* FIXME: replace with a list_find_first() call */
 	/* If an unsupported operator was used, the constraint is valid only if
 	 * the expression doesn't contain a feature handled by this plugin. */
-	fit = list_iterator_create(context.features);
+	fit = list_iterator_create(helper_features);
 	while ((feature = list_next(fit))) {
 		if (strstr(job_features, feature->name) != NULL) {
 			error("operator(s) \"[]()|*\" not allowed in constraint \"%s\" when using changeable feature \"%s\"",
@@ -521,7 +510,7 @@ extern int node_features_p_node_set(char *active_features)
 	tmp = input;
 	while ((kv = strsep(&tmp, "&"))) {
 
-		feature = list_find_first(context.features, _cmp_features, kv);
+		feature = list_find_first(helper_features, _cmp_features, kv);
 		if (feature == NULL) {
 			info("skipping unregistered feature \"%s\"", kv);
 			continue;
@@ -563,7 +552,7 @@ extern void node_features_p_node_state(char **avail_modes, char **current_mode)
 	 * Call every helper with no args to get list of active features
 	 * Account for possible duplicates in output
 	 */
-	fit = list_iterator_create(context.features);
+	fit = list_iterator_create(helper_features);
 	while ((feature = list_next(fit))) {
 		ListIterator curfit = NULL;
 		List current = _feature_get_state(feature);
@@ -577,7 +566,7 @@ extern void node_features_p_node_state(char **avail_modes, char **current_mode)
 		curfit = list_iterator_create(current);
 		while ((value = list_next(curfit))) {
 			/* Verify registered mode, parse out garbage */
-			if (!list_find_first(context.features, _cmp_features, value))
+			if (!list_find_first(helper_features, _cmp_features, value))
 				continue;
 
 			/* check that this mode is not already in list of current modes */
@@ -730,7 +719,7 @@ extern void node_features_p_get_config(config_plugin_params_t *p)
 	xstrcat(p->name, plugin_type);
 	data = p->key_pairs;
 
-	fit = list_iterator_create(context.features);
+	fit = list_iterator_create(helper_features);
 	while ((feature = list_next(fit))) {
 		key_pair = xmalloc(sizeof(config_key_pair_t));
 		key_pair->name = xstrdup("Feature");
@@ -738,7 +727,7 @@ extern void node_features_p_get_config(config_plugin_params_t *p)
 		list_append(data, key_pair);
 	}
 
-	fit = list_iterator_create(context.exclusives);
+	fit = list_iterator_create(helper_exclusives);
 	while ((exclusive = list_next(fit))) {
 		key_pair = xmalloc(sizeof(config_key_pair_t));
 		key_pair->name = xstrdup("MutuallyExclusive");
@@ -753,12 +742,12 @@ extern void node_features_p_get_config(config_plugin_params_t *p)
 
 	key_pair = xmalloc(sizeof(config_key_pair_t));
 	key_pair->name = xstrdup("NodeRebootWeight");
-	key_pair->value = xstrdup_printf("%u", context.node_reboot_weight);
+	key_pair->value = xstrdup_printf("%u", node_reboot_weight);
 	list_append(data, key_pair);
 
 	key_pair = xmalloc(sizeof(config_key_pair_t));
 	key_pair->name = xstrdup("BootTime");
-	key_pair->value = xstrdup_printf("%u", context.boot_time);
+	key_pair->value = xstrdup_printf("%u", boot_time);
 	list_append(data, key_pair);
 
 	return;
@@ -779,12 +768,12 @@ extern char *node_features_p_node_xlate2(char *new_features)
 
 extern uint32_t node_features_p_boot_time(void)
 {
-	return context.boot_time;
+	return boot_time;
 }
 
 extern uint32_t node_features_p_reboot_weight(void)
 {
-	return context.node_reboot_weight;
+	return node_reboot_weight;
 }
 
 extern int node_features_p_reconfig(void)
