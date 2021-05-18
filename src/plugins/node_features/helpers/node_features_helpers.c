@@ -784,7 +784,8 @@ extern int node_features_p_reconfig(void)
 
 extern bool node_features_p_user_update(uid_t uid)
 {
-	if (allowed_uid_cnt == 0)   /* Default is ALL users allowed to update */
+	/* Default is ALL users allowed to update */
+	if (allowed_uid_cnt == 0)
 		return true;
 
 	for (int i = 0; i < allowed_uid_cnt; i++) {
