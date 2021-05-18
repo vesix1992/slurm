@@ -115,7 +115,7 @@ static void _make_uid_array(char *uid_str)
 	}
 	uid_cnt++;
 
-	allowed_uid = xmalloc(sizeof(uid_t) * uid_cnt);
+	allowed_uid = xcalloc(uid_cnt, sizeof(uid_t));
 	allowed_uid_cnt = 0;
 	tmp_str = xstrdup(uid_str);
 	tok = strtok_r(tmp_str, ",", &save_ptr);
