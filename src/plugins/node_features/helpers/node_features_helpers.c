@@ -85,7 +85,7 @@ static int _cmp_features(void *x, void *key)
 	return strcmp(feature->name, key) == 0;
 }
 
-static bool is_feature_valid(const char *k)
+static bool _is_feature_valid(const char *k)
 {
 	if (k == NULL || k[0] == '\0')
 		return false;
@@ -296,7 +296,7 @@ static int parse_feature(void **data, slurm_parser_enum_t type,
 	char *path = NULL;
 	int rc = -1;
 
-	if (!is_feature_valid(name)) {
+	if (!_is_feature_valid(name)) {
 		slurm_seterrno(ESLURM_INVALID_FEATURE);
 		goto fail;
 	}
