@@ -614,7 +614,7 @@ char *node_features_p_node_xlate(char *new_features, char *orig_features,
 				 char *avail_features, int node_inx)
 {
 	List features = NULL;
-	const char *feature = NULL;
+	char *feature = NULL;
 	char *input = NULL;
 	char *tmp = NULL;
 	ListIterator it;
@@ -644,10 +644,10 @@ char *node_features_p_node_xlate(char *new_features, char *orig_features,
 	tmp = input;
 	while ((feature = strsep(&tmp, ","))) {
 		/* orig_features - plugin_changeable_features */
-		if (node_features_p_changeable_feature((char *)feature))
+		if (node_features_p_changeable_feature(feature))
 			continue;
 		/* new_features U (orig_features - plugin_changeable_features) */
-		if (list_find_first(features, _cmp_str, (char *)feature) != NULL)
+		if (list_find_first(features, _cmp_str, feature) != NULL)
 			continue;
 		list_append(features, xstrdup(feature));
 	}
