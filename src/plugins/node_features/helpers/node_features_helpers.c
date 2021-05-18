@@ -484,6 +484,7 @@ int node_features_p_job_valid(char *job_features)
 	if (job_features == NULL)
 		return SLURM_SUCCESS;
 
+	/* FIXME: replace with a list_find_first() call */
 	/* Check the mutually exclusive lists */
 	fit = list_iterator_create(context.exclusives);
 	while ((exclusive_list = list_next(fit))) {
@@ -498,6 +499,7 @@ int node_features_p_job_valid(char *job_features)
 	if (strpbrk(job_features, "[]()|*") == NULL)
 		return SLURM_SUCCESS;
 
+	/* FIXME: replace with a list_find_first() call */
 	/* If an unsupported operator was used, the constraint is valid only if
 	 * the expression doesn't contain a feature handled by this plugin. */
 	fit = list_iterator_create(context.features);
