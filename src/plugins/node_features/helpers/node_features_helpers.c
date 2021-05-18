@@ -302,9 +302,9 @@ fail:
 	return rc;
 }
 
-static int parse_exclusives(void **data, slurm_parser_enum_t type,
-			 const char *key, const char *name,
-			 const char *line, char **leftover)
+static int _parse_exclusives(void **data, slurm_parser_enum_t type,
+			     const char *key, const char *name,
+			     const char *line, char **leftover)
 {
 	*data = xstrdup(name);
 
@@ -314,7 +314,7 @@ static int parse_exclusives(void **data, slurm_parser_enum_t type,
 static s_p_options_t conf_options[] = {
 	{"Feature", S_P_ARRAY, parse_feature, (ListDelF) _feature_destroy},
 	{"BootTime", S_P_UINT32},
-	{"MutuallyExclusive", S_P_ARRAY, parse_exclusives, xfree_ptr},
+	{"MutuallyExclusive", S_P_ARRAY, _parse_exclusives, xfree_ptr},
 	{"NodeRebootWeight", S_P_UINT32},
 	{"AllowUserBoot", S_P_STRING},
 	{NULL},
