@@ -138,11 +138,6 @@ static void _feature_destroy(plugin_feature_t *feature)
 	xfree(feature);
 }
 
-static void _exclusives_destroy(void *exclusives)
-{
-	list_destroy((List)exclusives);
-}
-
 /* FIXME: replace this with run_command() from src/common/run_command.c */
 static int run_command(const char *command, char **output)
 {
@@ -337,7 +332,7 @@ static int _read_config_file(void)
 	helper_features = list_create((ListDelF) _feature_destroy);
 
 	FREE_NULL_LIST(helper_exclusives);
-	helper_exclusives = list_create(_exclusives_destroy);
+	helper_exclusives = list_create((ListDelF) list_destroy);
 
 	tbl = s_p_hashtbl_create(conf_options);
 
