@@ -41,12 +41,12 @@
 #include <stdio.h>
 
 #include "slurm/slurm_errno.h"
+#include "src/common/list.h"
 #include "src/common/node_conf.h"
 #include "src/common/read_config.h"
+#include "src/common/uid.h"
 #include "src/common/xmalloc.h"
 #include "src/common/xstring.h"
-#include "src/common/list.h"
-#include "src/common/uid.h"
 
 #define helpers_verbose(f_, ...) \
 	verbose("%s: %s: " f_, plugin_type, __func__, ##__VA_ARGS__)
