@@ -626,10 +626,9 @@ extern char *node_features_p_node_xlate(char *new_features, char *orig_features,
 	}
 	xfree(input);
 
-	merged = xstrdup("");
 	it = list_iterator_create(features);
 	while ((feature = list_next(it))) {
-		xstrfmtcat(merged, "%s%s", (merged[0] ? "," : ""), feature);
+		xstrfmtcat(merged, "%s%s", (merged ? "," : ""), feature);
 	}
 
 	/* FIXME: list_iterator_create would have caused a NULL derefrence already */
@@ -662,7 +661,6 @@ static char *_make_helper_str(const plugin_feature_t *feature)
 	char *str = NULL;
 	/* Format: "Name Helper=<path>" */
 
-	str = xstrdup("");
 	xstrfmtcat(str, "%s Helper=%s", feature->name, feature->helper);
 
 	return str;
@@ -673,10 +671,9 @@ static char *_make_exclusive_str(List exclusive)
 	ListIterator it = NULL;
 	char *item = NULL, *str = NULL;
 
-	str = xstrdup("");
 	it = list_iterator_create(exclusive);
 	while ((item = list_next(it))) {
-		xstrfmtcat(str, "%s%s", (str[0] ? "," : ""), item);
+		xstrfmtcat(str, "%s%s", (str ? "," : ""), item);
 	}
 
 	return str;
