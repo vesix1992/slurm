@@ -559,7 +559,7 @@ extern void node_features_p_node_state(char **avail_modes, char **current_mode)
 		List current = _feature_get_state(feature);
 
 		xstrfmtcat(*avail_modes, "%s%s",
-			(*avail_modes[0] ? "," : ""), feature->name);
+			   (*avail_modes[0] ? "," : ""), feature->name);
 
 		if (current == NULL || list_is_empty(current))
 			continue;
