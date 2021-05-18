@@ -330,7 +330,7 @@ static s_p_options_t conf_options[] = {
 	{NULL},
 };
 
-static int read_config_file(void)
+static int _read_config_file(void)
 {
 	s_p_hashtbl_t *tbl = NULL;
 	char *confpath = NULL;
@@ -407,7 +407,7 @@ fail:
 
 int init(void)
 {
-	return read_config_file();
+	return _read_config_file();
 }
 
 int fini(void)
@@ -798,7 +798,7 @@ uint32_t node_features_p_reboot_weight(void)
 
 int node_features_p_reconfig(void)
 {
-	return read_config_file();
+	return _read_config_file();
 }
 
 bool node_features_p_user_update(uid_t uid)
