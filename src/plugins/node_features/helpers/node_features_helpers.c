@@ -127,7 +127,7 @@ static void _make_uid_array(char *uid_str)
 	xfree(tmp_str);
 }
 
-static plugin_feature_t *feature_create(const char *name, const char *helper)
+static plugin_feature_t *_feature_create(const char *name, const char *helper)
 {
 	plugin_feature_t *feature = NULL;
 
@@ -246,7 +246,7 @@ static int feature_register(const char *name, const char *helper)
 		return SLURM_ERROR;
 	}
 
-	feature = feature_create(name, helper);
+	feature = _feature_create(name, helper);
 
 	info("adding new feature \"%s\"", feature->name);
 	list_append(context.features, feature);
@@ -303,7 +303,7 @@ static int parse_feature(void **data, slurm_parser_enum_t type,
 	s_p_get_string(&path, "Helper", tbl);
 
 	/* In slurmctld context, we can have path == NULL */
-	*data = feature_create(name, path);
+	*data = _feature_create(name, path);
 	xfree(path);
 
 	rc = 1;
