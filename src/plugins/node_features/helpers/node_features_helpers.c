@@ -148,7 +148,7 @@ static void _feature_destroy(plugin_feature_t *feature)
 	xfree(feature);
 }
 
-static void exclusives_destroy(void *exclusives)
+static void _exclusives_destroy(void *exclusives)
 {
 	list_destroy((List)exclusives);
 }
@@ -353,7 +353,7 @@ static int read_config_file(void)
 		list_destroy(context.exclusives);
 		context.exclusives = NULL;
 	}
-	context.exclusives = list_create(exclusives_destroy);
+	context.exclusives = list_create(_exclusives_destroy);
 
 	tbl = s_p_hashtbl_create(conf_options);
 
