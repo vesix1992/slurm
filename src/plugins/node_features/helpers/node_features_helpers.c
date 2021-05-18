@@ -158,6 +158,7 @@ static void exclusives_destroy(void *exclusives)
 	list_destroy((List)exclusives);
 }
 
+/* FIXME: replace this with run_command() from src/common/run_command.c */
 static int run_command(const char *command, char **output)
 {
 	FILE *fp;
