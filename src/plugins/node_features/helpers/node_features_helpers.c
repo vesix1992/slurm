@@ -77,7 +77,7 @@ static int _cmp_features(void *x, void *key)
 
 static bool _is_feature_valid(const char *k)
 {
-	if (k == NULL || k[0] == '\0')
+	if (!k || k[0] == '\0')
 		return false;
 
 	if (!isalpha(k[0]) && k[0] != '_' && k[0] != '=')
@@ -130,7 +130,7 @@ static plugin_feature_t *_feature_create(const char *name, const char *helper)
 
 static void _feature_destroy(plugin_feature_t *feature)
 {
-	if (feature == NULL)
+	if (!feature)
 		return;
 
 	xfree(feature->name);
@@ -185,7 +185,7 @@ static int _feature_set_state(const plugin_feature_t *feature)
 	char *command = NULL;
 	int rc = SLURM_ERROR;
 
-	if (feature->helper == NULL)
+	if (!feature->helper)
 		goto fail;
 
 	xstrfmtcat(command, "%s %s", feature->helper, feature->name);
@@ -410,7 +410,7 @@ extern bool node_features_p_changeable_feature(char *input)
 	plugin_feature_t *feature = NULL;
 
 	feature = list_find_first(helper_features, _cmp_features, input);
-	if (feature == NULL)
+	if (!feature)
 		return false;
 
 	return true;
@@ -458,7 +458,7 @@ extern int node_features_p_job_valid(char *job_features)
 	char *name = NULL;
 	int rc = SLURM_ERROR;
 
-	if (job_features == NULL)
+	if (!job_features)
 		return SLURM_SUCCESS;
 
 	/* FIXME: replace with a list_find_first() call */
@@ -473,7 +473,7 @@ extern int node_features_p_job_valid(char *job_features)
 	}
 
 	/* Check for unsupported constraint operators in constraint expression */
-	if (strpbrk(job_features, "[]()|*") == NULL)
+	if (!strpbrk(job_features, "[]()|*"))
 		return SLURM_SUCCESS;
 
 	/* FIXME: replace with a list_find_first() call */
@@ -511,7 +511,7 @@ extern int node_features_p_node_set(char *active_features)
 	while ((kv = strsep(&tmp, "&"))) {
 
 		feature = list_find_first(helper_features, _cmp_features, kv);
-		if (feature == NULL) {
+		if (!feature) {
 			info("skipping unregistered feature \"%s\"", kv);
 			continue;
 		}
@@ -561,7 +561,7 @@ extern void node_features_p_node_state(char **avail_modes, char **current_mode)
 		xstrfmtcat(*avail_modes, "%s%s",
 			   (*avail_modes[0] ? "," : ""), feature->name);
 
-		if (current == NULL || list_is_empty(current))
+		if (!current || list_is_empty(current))
 			continue;
 
 		curfit = list_iterator_create(current);
@@ -602,10 +602,10 @@ extern char *node_features_p_node_xlate(char *new_features, char *orig_features,
 	verbose("orig_features: %s", orig_features);
 	verbose("avail_features: %s", avail_features);
 
-	if (new_features == NULL || new_features[0] == '\0')
+	if (!new_features || new_features[0] == '\0')
 		return xstrdup(orig_features);
 
-	if (orig_features == NULL || orig_features[0] == '\0')
+	if (!orig_features || orig_features[0] == '\0')
 		return xstrdup(new_features);
 
 	/* Compute: merged = new_features U (orig_features - changeable_features) */
