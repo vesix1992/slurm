@@ -647,6 +647,7 @@ extern char *node_features_p_node_xlate(char *new_features, char *orig_features,
 		xstrfmtcat(merged, "%s%s", (merged[0] ? "," : ""), feature);
 	}
 
+	/* FIXME: list_iterator_create would have caused a NULL derefrence already */
 	if (features != NULL)
 		list_destroy(features);
 	verbose("merged features: %s", merged);
