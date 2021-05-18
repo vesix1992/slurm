@@ -405,12 +405,12 @@ fail:
 	return rc;
 }
 
-int init(void)
+extern int init(void)
 {
 	return _read_config_file();
 }
 
-int fini(void)
+extern int fini(void)
 {
 	if (context.features != NULL) {
 		list_destroy(context.features);
@@ -428,7 +428,7 @@ int fini(void)
 	return SLURM_SUCCESS;
 }
 
-bool node_features_p_changeable_feature(char *input)
+extern bool node_features_p_changeable_feature(char *input)
 {
 	plugin_feature_t *feature = NULL;
 
@@ -473,7 +473,7 @@ static int _count_exclusivity(char *job_features, List exclusive_list)
 	return count;
 }
 
-int node_features_p_job_valid(char *job_features)
+extern int node_features_p_job_valid(char *job_features)
 {
 	ListIterator fit = NULL;
 	plugin_feature_t *feature = NULL;
@@ -522,7 +522,7 @@ end:
 	return rc;
 }
 
-int node_features_p_node_set(char *active_features)
+extern int node_features_p_node_set(char *active_features)
 {
 	char *kv, *tmp;
 	char *input = NULL;
@@ -551,7 +551,7 @@ fail:
 	return rc;
 }
 
-void node_features_p_node_state(char **avail_modes, char **current_mode)
+extern void node_features_p_node_state(char **avail_modes, char **current_mode)
 {
 	ListIterator fit = NULL;
 	plugin_feature_t *feature = NULL;
@@ -608,8 +608,8 @@ void node_features_p_node_state(char **avail_modes, char **current_mode)
 	verbose("new: avail=%s current=%s", *avail_modes, *current_mode);
 }
 
-char *node_features_p_node_xlate(char *new_features, char *orig_features,
-				 char *avail_features, int node_inx)
+extern char *node_features_p_node_xlate(char *new_features, char *orig_features,
+					char *avail_features, int node_inx)
 {
 	List features = NULL;
 	char *feature = NULL;
@@ -664,7 +664,7 @@ char *node_features_p_node_xlate(char *new_features, char *orig_features,
 	return merged;
 }
 
-char *node_features_p_job_xlate(char *job_features)
+extern char *node_features_p_job_xlate(char *job_features)
 {
 	if (strpbrk(job_features, "[]()|*") != NULL) {
 		info("an unsupported constraint operator was used in \"%s\", clearing job constraint",
@@ -676,7 +676,7 @@ char *node_features_p_job_xlate(char *job_features)
 }
 
 /* Return true if the plugin requires PowerSave mode for booting nodes */
-bool node_features_p_node_power(void)
+extern bool node_features_p_node_power(void)
 {
 	return false;
 }
@@ -727,7 +727,7 @@ static char *_make_uid_str(uid_t *uid_array, int uid_cnt)
 }
 
 /* Get node features plugin configuration */
-void node_features_p_get_config(config_plugin_params_t *p)
+extern void node_features_p_get_config(config_plugin_params_t *p)
 {
 	ListIterator fit = NULL;
 	plugin_feature_t *feature;
@@ -773,7 +773,7 @@ void node_features_p_get_config(config_plugin_params_t *p)
 	return;
 }
 
-bitstr_t *node_features_p_get_node_bitmap(void)
+extern bitstr_t *node_features_p_get_node_bitmap(void)
 {
 	bitstr_t *bitmap;
 	bitmap = bit_alloc(node_record_count);
@@ -781,27 +781,27 @@ bitstr_t *node_features_p_get_node_bitmap(void)
 	return bitmap;
 }
 
-char *node_features_p_node_xlate2(char *new_features)
+extern char *node_features_p_node_xlate2(char *new_features)
 {
 	return xstrdup(new_features);
 }
 
-uint32_t node_features_p_boot_time(void)
+extern uint32_t node_features_p_boot_time(void)
 {
 	return context.boot_time;
 }
 
-uint32_t node_features_p_reboot_weight(void)
+extern uint32_t node_features_p_reboot_weight(void)
 {
 	return context.node_reboot_weight;
 }
 
-int node_features_p_reconfig(void)
+extern int node_features_p_reconfig(void)
 {
 	return _read_config_file();
 }
 
-bool node_features_p_user_update(uid_t uid)
+extern bool node_features_p_user_update(uid_t uid)
 {
 	if (allowed_uid_cnt == 0)   /* Default is ALL users allowed to update */
 		return true;
@@ -814,32 +814,32 @@ bool node_features_p_user_update(uid_t uid)
 	return false;
 }
 
-void node_features_p_step_config(bool mem_sort, bitstr_t *numa_bitmap)
+extern void node_features_p_step_config(bool mem_sort, bitstr_t *numa_bitmap)
 {
 	return;
 }
 
-int node_features_p_overlap(bitstr_t *active_bitmap)
+extern int node_features_p_overlap(bitstr_t *active_bitmap)
 {
 	/* Executed on slurmctld and not used by this plugin */
 	return bit_set_count(active_bitmap);
 }
 
-int node_features_p_get_node(char *node_list)
+extern int node_features_p_get_node(char *node_list)
 {
 	/* Executed on slurmctld and not used by this plugin */
 	return SLURM_SUCCESS;
 }
 
-int node_features_p_node_update(char *active_features,
-				bitstr_t *node_bitmap)
+extern int node_features_p_node_update(char *active_features,
+				       bitstr_t *node_bitmap)
 {
 	/* Executed on slurmctld and not used by this plugin */
 	return SLURM_SUCCESS;
 }
 
-bool node_features_p_node_update_valid(void *node_ptr,
-				       update_node_msg_t *update_node_msg)
+extern bool node_features_p_node_update_valid(void *node_ptr,
+					      update_node_msg_t *update_node_msg)
 {
 	/* Executed on slurmctld and not used by this plugin */
 	return true;
