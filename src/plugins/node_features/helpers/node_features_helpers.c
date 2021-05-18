@@ -343,16 +343,10 @@ static int _read_config_file(void)
 	xfree(allowed_uid);
 	allowed_uid_cnt = 0;
 
-	if (context.features != NULL) {
-		list_destroy(context.features);
-		context.features = NULL;
-	}
+	FREE_NULL_LIST(context.features);
 	context.features = list_create((ListDelF) _feature_destroy);
 
-	if (context.exclusives != NULL) {
-		list_destroy(context.exclusives);
-		context.exclusives = NULL;
-	}
+	FREE_NULL_LIST(context.exclusives);
 	context.exclusives = list_create(_exclusives_destroy);
 
 	tbl = s_p_hashtbl_create(conf_options);
@@ -414,16 +408,8 @@ extern int init(void)
 
 extern int fini(void)
 {
-	if (context.features != NULL) {
-		list_destroy(context.features);
-		context.features = NULL;
-	}
-
-	if (context.exclusives != NULL) {
-		list_destroy(context.exclusives);
-		context.exclusives = NULL;
-	}
-
+	FREE_NULL_LIST(context.features);
+	FREE_NULL_LIST(context.exclusives);
 	xfree(allowed_uid);
 	allowed_uid_cnt = 0;
 
