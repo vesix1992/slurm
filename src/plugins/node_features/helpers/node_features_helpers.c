@@ -131,7 +131,7 @@ static plugin_feature_t *feature_create(const char *name, const char *helper)
 {
 	plugin_feature_t *feature = NULL;
 
-	feature = xcalloc(1, sizeof(*feature));
+	feature = xmalloc(sizeof(*feature));
 	feature->name = xstrdup(name);
 	if (helper != NULL)
 		feature->helper = xstrdup(helper);
