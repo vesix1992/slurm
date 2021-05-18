@@ -573,8 +573,10 @@ extern void node_features_p_node_state(char **avail_modes, char **current_mode)
 
 	all_current = list_create(xfree_ptr);
 
-	/* Call every helper with no args to get list of active features
-	 * Account for possible duplicates in output */
+	/*
+	 * Call every helper with no args to get list of active features
+	 * Account for possible duplicates in output
+	 */
 	fit = list_iterator_create(context.features);
 	while ((feature = list_next(fit))) {
 		ListIterator curfit = NULL;
