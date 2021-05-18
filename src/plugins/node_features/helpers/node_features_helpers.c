@@ -48,15 +48,6 @@
 #include "src/common/xmalloc.h"
 #include "src/common/xstring.h"
 
-#define helpers_verbose(f_, ...) \
-	verbose("%s: %s: " f_, plugin_type, __func__, ##__VA_ARGS__)
-
-#define helpers_info(f_, ...) \
-	info("%s: %s: " f_, plugin_type, __func__, ##__VA_ARGS__)
-
-#define helpers_error(f_, ...) \
-	error("%s: %s: " f_, plugin_type, __func__, ##__VA_ARGS__)
-
 const char plugin_name[] = "node_features helpers plugin";
 const char plugin_type[] = "node_features/helpers";
 const uint32_t plugin_version = SLURM_VERSION_NUMBER;
@@ -175,7 +166,7 @@ static int run_command(const char *command, char **output)
 	size_t len = 0;
 	int status = 0, rc = SLURM_ERROR;
 
-	helpers_info("executing \"%s\"", command);
+	info("executing \"%s\"", command);
 
 	if (output != NULL)
 		*output = NULL;
@@ -189,8 +180,8 @@ static int run_command(const char *command, char **output)
 	}
 
 	if ((status = pclose(fp)) != 0) {
-		helpers_error("command \"%s\" returned with exit status: %d",
-			command, status);
+		error("command \"%s\" returned with exit status: %d",
+		      command, status);
 		goto fail;
 	}
 
@@ -214,7 +205,7 @@ static int feature_set_state(const struct plugin_feature *feature)
 
 	xstrfmtcat(command, "%s %s", feature->helper, feature->name);
 	if (run_command(command, NULL) != SLURM_SUCCESS) {
-		helpers_error("failed to set new value for feature: %s", feature->name);
+		error("failed to set new value for feature: %s", feature->name);
 		goto fail;
 	}
 
@@ -254,14 +245,14 @@ static int feature_register(const char *name, const char *helper)
 
 	existing = list_find_first(context.features, cmp_features, (char*)name);
 	if (existing != NULL) {
-		helpers_error("feature \"%s\" previously registered with helper \"%s\"",
-			name, existing->helper);
+		error("feature \"%s\" previously registered with helper \"%s\"",
+		      name, existing->helper);
 		return SLURM_ERROR;
 	}
 
 	feature = feature_create(name, helper);
 
-	helpers_info("adding new feature \"%s\"", feature->name);
+	info("adding new feature \"%s\"", feature->name);
 	list_append(context.features, feature);
 	feature = NULL;
 
@@ -278,7 +269,7 @@ static int exclusive_register(const char *listp)
 
 	while ((entry = strsep(&tmp, ",")) != NULL) {
 		if (list_find_first(data_list, cmp_str, entry)) {
-			helpers_error("feature \"%s\" already in exclusive list", entry);
+			error("feature \"%s\" already in exclusive list", entry);
 			continue;
 		}
 
@@ -372,14 +363,14 @@ static int read_config_file(void)
 
 	confpath = get_extra_conf_path("node_features.conf");
 	if (s_p_parse_file(tbl, NULL, confpath, false) == SLURM_ERROR) {
-		helpers_error("could not parse configuration file: %s", confpath);
+		error("could not parse configuration file: %s", confpath);
 		goto fail;
 	}
 	xfree(confpath);
 
 	if (s_p_get_array(&features, &count, "Feature", tbl) == 0) {
-		helpers_error("no \"Feature\" entry in configuration file %s",
-			confpath);
+		error("no \"Feature\" entry in configuration file %s",
+		      confpath);
 		goto fail;
 	}
 
@@ -402,13 +393,13 @@ static int read_config_file(void)
 	}
 
 	if (s_p_get_uint32(&context.boot_time, "BootTime", tbl) == 0)
-		helpers_info("BootTime not specified, using default value: %u",
-			context.boot_time);
+		info("BootTime not specified, using default value: %u",
+		     context.boot_time);
 
 	if (s_p_get_uint32(&context.node_reboot_weight,
 				"NodeRebootWeight", tbl) == 0)
-		helpers_info("NodeRebootWeight not specified, using default value: %u",
-			context.node_reboot_weight);
+		info("NodeRebootWeight not specified, using default value: %u",
+		     context.node_reboot_weight);
 
 	rc = SLURM_SUCCESS;
 
@@ -501,7 +492,7 @@ int node_features_p_job_valid(char *job_features)
 	fit = list_iterator_create(context.exclusives);
 	while ((exclusive_list = list_next(fit)) != NULL) {
 		if (_count_exclusivity(job_features, exclusive_list) > 1) {
-			helpers_error("job requests mutually exclusive features");
+			error("job requests mutually exclusive features");
 			rc = ESLURM_INVALID_FEATURE;
 			goto end;
 		}
@@ -516,8 +507,8 @@ int node_features_p_job_valid(char *job_features)
 	fit = list_iterator_create(context.features);
 	while ((feature = list_next(fit)) != NULL) {
 		if (strstr(job_features, feature->name) != NULL) {
-			helpers_error("operator(s) \"[]()|*\" not allowed in constraint \"%s\" when using changeable feature \"%s\"",
-				job_features, feature->name);
+			error("operator(s) \"[]()|*\" not allowed in constraint \"%s\" when using changeable feature \"%s\"",
+			      job_features, feature->name);
 			rc = ESLURM_INVALID_FEATURE;
 			goto end;
 		}
@@ -546,7 +537,7 @@ int node_features_p_node_set(char *active_features)
 
 		feature = list_find_first(context.features, cmp_features, kv);
 		if (feature == NULL) {
-			helpers_info("skipping unregistered feature \"%s\"", kv);
+			info("skipping unregistered feature \"%s\"", kv);
 			continue;
 		}
 
@@ -572,7 +563,7 @@ void node_features_p_node_state(char **avail_modes, char **current_mode)
 	if (!avail_modes || !current_mode)
 		return;
 
-	helpers_verbose("original: avail=%s current=%s",
+	verbose("original: avail=%s current=%s",
 		*avail_modes, *current_mode);
 
 	if (*avail_modes == NULL)
@@ -616,7 +607,7 @@ void node_features_p_node_state(char **avail_modes, char **current_mode)
 	}
 	list_destroy(all_current);
 
-	helpers_verbose("new: avail=%s current=%s", *avail_modes, *current_mode);
+	verbose("new: avail=%s current=%s", *avail_modes, *current_mode);
 }
 
 char *node_features_p_node_xlate(char *new_features, char *orig_features,
@@ -629,9 +620,9 @@ char *node_features_p_node_xlate(char *new_features, char *orig_features,
 	ListIterator it;
 	char *merged = NULL;
 
-	helpers_verbose("new_features: %s", new_features);
-	helpers_verbose("orig_features: %s", orig_features);
-	helpers_verbose("avail_features: %s", avail_features);
+	verbose("new_features: %s", new_features);
+	verbose("orig_features: %s", orig_features);
+	verbose("avail_features: %s", avail_features);
 
 	if (new_features == NULL || new_features[0] == '\0')
 		return xstrdup(orig_features);
@@ -670,7 +661,7 @@ char *node_features_p_node_xlate(char *new_features, char *orig_features,
 
 	if (features != NULL)
 		list_destroy(features);
-	helpers_verbose("merged features: %s", merged);
+	verbose("merged features: %s", merged);
 
 	return merged;
 }
@@ -678,8 +669,8 @@ char *node_features_p_node_xlate(char *new_features, char *orig_features,
 char *node_features_p_job_xlate(char *job_features)
 {
 	if (strpbrk(job_features, "[]()|*") != NULL) {
-		helpers_info("an unsupported constraint operator was used in \"%s\", clearing job constraint",
-			job_features);
+		info("an unsupported constraint operator was used in \"%s\", clearing job constraint",
+		     job_features);
 		return xstrdup("");
 	}
 
