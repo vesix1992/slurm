@@ -226,7 +226,7 @@ static List feature_get_state(const plugin_feature_t *feature)
 		return result;
 
 	tmp = output;
-	while ((kv = strsep(&tmp, "\n")) != NULL) {
+	while ((kv = strsep(&tmp, "\n"))) {
 		if (kv[0] == '\0')
 			break;
 
@@ -267,7 +267,7 @@ static int exclusive_register(const char *listp)
 	char *tmp = input;
 	char *entry;
 
-	while ((entry = strsep(&tmp, ",")) != NULL) {
+	while ((entry = strsep(&tmp, ","))) {
 		if (list_find_first(data_list, cmp_str, entry)) {
 			error("feature \"%s\" already in exclusive list", entry);
 			continue;
@@ -450,12 +450,12 @@ static int _count_exclusivity(char *job_features, List exclusive_list)
 	char *feature = NULL;
 
 	it = list_iterator_create(exclusive_list);
-	while ((feature = list_next(it)) != NULL) {
+	while ((feature = list_next(it))) {
 	char *ptr = strstr(job_features, feature);
 	unsigned int len = strlen(feature);
 
 	/* check for every matching pattern */
-	while (ptr != NULL) {
+	while (ptr) {
 		/* check word+1 to verify exact match */
 		if (isalnum(ptr[len]) || ptr[len] == '-' || ptr[len] == '.' ||
 			ptr[len] == '_' || ptr[len] == '=') {
@@ -490,7 +490,7 @@ int node_features_p_job_valid(char *job_features)
 
 	/* Check the mutually exclusive lists */
 	fit = list_iterator_create(context.exclusives);
-	while ((exclusive_list = list_next(fit)) != NULL) {
+	while ((exclusive_list = list_next(fit))) {
 		if (_count_exclusivity(job_features, exclusive_list) > 1) {
 			error("job requests mutually exclusive features");
 			rc = ESLURM_INVALID_FEATURE;
@@ -505,7 +505,7 @@ int node_features_p_job_valid(char *job_features)
 	/* If an unsupported operator was used, the constraint is valid only if
 	 * the expression doesn't contain a feature handled by this plugin. */
 	fit = list_iterator_create(context.features);
-	while ((feature = list_next(fit)) != NULL) {
+	while ((feature = list_next(fit))) {
 		if (strstr(job_features, feature->name) != NULL) {
 			error("operator(s) \"[]()|*\" not allowed in constraint \"%s\" when using changeable feature \"%s\"",
 			      job_features, feature->name);
@@ -533,7 +533,7 @@ int node_features_p_node_set(char *active_features)
 
 	input = xstrdup(active_features);
 	tmp = input;
-	while ((kv = strsep(&tmp, "&")) != NULL) {
+	while ((kv = strsep(&tmp, "&"))) {
 
 		feature = list_find_first(context.features, cmp_features, kv);
 		if (feature == NULL) {
@@ -576,7 +576,7 @@ void node_features_p_node_state(char **avail_modes, char **current_mode)
 	/* Call every helper with no args to get list of active features
 	 * Account for possible duplicates in output */
 	fit = list_iterator_create(context.features);
-	while ((feature = list_next(fit)) != NULL) {
+	while ((feature = list_next(fit))) {
 		ListIterator curfit = NULL;
 		List current = feature_get_state(feature);
 
@@ -587,7 +587,7 @@ void node_features_p_node_state(char **avail_modes, char **current_mode)
 			continue;
 
 		curfit = list_iterator_create(current);
-		while ((value = list_next(curfit)) != NULL ) {
+		while ((value = list_next(curfit))) {
 			/* Verify registered mode, parse out garbage */
 			if (!list_find_first(context.features, cmp_features, value))
 				continue;
@@ -602,7 +602,7 @@ void node_features_p_node_state(char **avail_modes, char **current_mode)
 	list_iterator_destroy(fit);
 
 	fit = list_iterator_create(all_current);
-	while ((value = list_next(fit)) != NULL) {
+	while ((value = list_next(fit))) {
 		xstrfmtcat(*current_mode, "%s%s", (*current_mode[0] ? "," : ""), value);
 	}
 	list_destroy(all_current);
@@ -636,13 +636,13 @@ char *node_features_p_node_xlate(char *new_features, char *orig_features,
 	/* Add all features in "new_features" */
 	input = xstrdup(new_features);
 	tmp = input;
-	while ((feature = strsep(&tmp, ",")) != NULL)
+	while ((feature = strsep(&tmp, ",")))
 		list_append(features, xstrdup(feature));
 	xfree(input);
 
 	input = xstrdup(orig_features);
 	tmp = input;
-	while ((feature = strsep(&tmp, ",")) != NULL) {
+	while ((feature = strsep(&tmp, ","))) {
 		/* orig_features - plugin_changeable_features */
 		if (node_features_p_changeable_feature((char *)feature))
 			continue;
@@ -655,7 +655,7 @@ char *node_features_p_node_xlate(char *new_features, char *orig_features,
 
 	merged = xstrdup("");
 	it = list_iterator_create(features);
-	while ((feature = list_next(it)) != NULL) {
+	while ((feature = list_next(it))) {
 		xstrfmtcat(merged, "%s%s", (merged[0] ? "," : ""), feature);
 	}
 
@@ -701,7 +701,7 @@ static char *_make_exclusive_str(List exclusive)
 
 	str = xstrdup("");
 	it = list_iterator_create(exclusive);
-	while ((item = list_next(it)) != NULL) {
+	while ((item = list_next(it))) {
 		xstrfmtcat(str, "%s%s", (str[0] ? "," : ""), item);
 	}
 
@@ -742,7 +742,7 @@ void node_features_p_get_config(config_plugin_params_t *p)
 	data = p->key_pairs;
 
 	fit = list_iterator_create(context.features);
-	while ((feature = list_next(fit)) != NULL) {
+	while ((feature = list_next(fit))) {
 		key_pair = xmalloc(sizeof(config_key_pair_t));
 		key_pair->name = xstrdup("Feature");
 		key_pair->value = _make_helper_str(feature);
@@ -750,7 +750,7 @@ void node_features_p_get_config(config_plugin_params_t *p)
 	}
 
 	fit = list_iterator_create(context.exclusives);
-	while ((exclusive = list_next(fit)) != NULL) {
+	while ((exclusive = list_next(fit))) {
 		key_pair = xmalloc(sizeof(config_key_pair_t));
 		key_pair->name = xstrdup("MutuallyExclusive");
 		key_pair->value = _make_exclusive_str(exclusive);
