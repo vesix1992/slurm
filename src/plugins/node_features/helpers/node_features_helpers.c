@@ -74,7 +74,7 @@ static plugin_context_t context = {
 	.node_reboot_weight = (INFINITE - 1),
 };
 
-static int cmp_str(void *x, void *key)
+static int _cmp_str(void *x, void *key)
 {
 	return strcmp(x, key) == 0;
 }
@@ -268,7 +268,7 @@ static int exclusive_register(const char *listp)
 	char *entry;
 
 	while ((entry = strsep(&tmp, ","))) {
-		if (list_find_first(data_list, cmp_str, entry)) {
+		if (list_find_first(data_list, _cmp_str, entry)) {
 			error("feature \"%s\" already in exclusive list", entry);
 			continue;
 		}
@@ -593,7 +593,7 @@ void node_features_p_node_state(char **avail_modes, char **current_mode)
 				continue;
 
 			/* check that this mode is not already in list of current modes */
-			if (!list_find_first(all_current, cmp_str, value))
+			if (!list_find_first(all_current, _cmp_str, value))
 				list_append(all_current, xstrdup(value));
 		}
 
@@ -647,7 +647,7 @@ char *node_features_p_node_xlate(char *new_features, char *orig_features,
 		if (node_features_p_changeable_feature((char *)feature))
 			continue;
 		/* new_features U (orig_features - plugin_changeable_features) */
-		if (list_find_first(features, cmp_str, (char *)feature) != NULL)
+		if (list_find_first(features, _cmp_str, (char *)feature) != NULL)
 			continue;
 		list_append(features, xstrdup(feature));
 	}
