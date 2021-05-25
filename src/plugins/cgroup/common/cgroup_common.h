@@ -37,19 +37,7 @@
 #ifndef _CGROUP_COMMON_H
 #define _CGROUP_COMMON_H
 
-#include <string.h>
-#include <stdlib.h>
-
 #include "slurm/slurm.h"
 #include "slurm/slurm_errno.h"
-
-#include "src/common/log.h"
-#include "src/common/xassert.h"
-#include "src/common/xmalloc.h"
-#include "src/common/xstring.h"
-#include "src/common/xcgroup_read_config.h"
-
-extern void cgroup_free_conf(slurm_cgroup_conf_t *cg_conf);
-extern slurm_cgroup_conf_t *cgroup_get_conf();
 
 #endif /* !_CGROUP_COMMON_H */

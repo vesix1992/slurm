@@ -69,8 +69,6 @@ extern int cgroup_p_step_suspend();
 extern int cgroup_p_step_resume();
 extern int cgroup_p_step_destroy(cgroup_ctl_type_t sub);
 extern bool cgroup_p_has_pid(pid_t pid);
-extern void cgroup_p_free_conf(slurm_cgroup_conf_t *cg_conf);
-extern slurm_cgroup_conf_t *cgroup_p_get_conf();
 extern cgroup_limits_t *cgroup_p_root_constrain_get(cgroup_ctl_type_t sub);
 extern int cgroup_p_root_constrain_set(cgroup_ctl_type_t sub,
 				       cgroup_limits_t *limits);

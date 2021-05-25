@@ -516,16 +516,6 @@ extern bool cgroup_p_has_pid(pid_t pid)
 	return rc;
 }
 
-extern void cgroup_p_free_conf(slurm_cgroup_conf_t *cg_conf)
-{
-	cgroup_free_conf(cg_conf);
-}
-
-extern slurm_cgroup_conf_t *cgroup_p_get_conf()
-{
-	return cgroup_get_conf();
-}
-
 extern cgroup_limits_t *cgroup_p_root_constrain_get(cgroup_ctl_type_t sub)
 {
 	int rc = SLURM_SUCCESS;
