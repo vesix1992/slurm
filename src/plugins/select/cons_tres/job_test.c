@@ -2460,6 +2460,9 @@ static int _eval_nodes_topo(job_record_t *job_ptr,
 			min_rem_nodes--;
 			max_nodes--;
 			avail_cpus = avail_cpu_per_node[i];
+			_cpus_to_use(&avail_cpus, rem_max_cpus, min_rem_nodes,
+				     details_ptr, avail_res_array[i], i,
+				     cr_type);
 			total_cpus += avail_cpus;
 			rem_cpus   -= avail_cpus;
 			rem_max_cpus -= avail_cpus;
@@ -2555,6 +2558,9 @@ static int _eval_nodes_topo(job_record_t *job_ptr,
 				    !avail_cpu_per_node[j])
 					continue;
 				avail_cpus = avail_cpu_per_node[j];
+				_cpus_to_use(&avail_cpus, rem_max_cpus,
+					     min_rem_nodes, details_ptr,
+					     avail_res_array[j], j, cr_type);
 				rem_nodes--;
 				min_rem_nodes--;
 				max_nodes--;
@@ -2625,6 +2631,9 @@ static int _eval_nodes_topo(job_record_t *job_ptr,
 			min_rem_nodes--;
 			max_nodes--;
 			avail_cpus = avail_cpu_per_node[i];
+			_cpus_to_use(&avail_cpus, rem_max_cpus, min_rem_nodes,
+				     details_ptr, avail_res_array[i], i,
+				     cr_type);
 			total_cpus += avail_cpus;
 			rem_cpus   -= avail_cpus;
 			rem_max_cpus -= avail_cpus;
