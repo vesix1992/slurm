@@ -140,6 +140,8 @@ extern int init_system_memory_cgroup(void)
 	       constrain_kmem_space?"enforced":"permissive",
 	       (unsigned long) cg_conf->min_kmem_space);
 
+	cgroup_g_free_conf(cg_conf);
+
         /*
          *  Warning: OOM Killer must be disabled for slurmstepd
          *  or it would be destroyed if the application use
@@ -165,6 +167,7 @@ extern void fini_system_cgroup(void)
 {
 	cgroup_g_system_destroy(CG_CPUS);
 	cgroup_g_system_destroy(CG_MEMORY);
+	cgroup_g_conf_fini();
 }
 
 extern int set_system_cgroup_cpus(char *phys_cpu_str)
