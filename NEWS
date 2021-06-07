@@ -144,6 +144,8 @@ documents those changes that are of interest to users and administrators.
     Cray builds when joining a CNCU job_container plugin with Epilog configured.
  -- Fix joining a CNCU job_container on a Native Cray build before executing the
     UnkillableStepProgram for a HetJob step.
+ -- Add support for automatically detecting and broadcasting executable shared
+    object dependencies for sbcast and srun --bcast.
 
 * Changes in Slurm 20.11.9
 ==========================
