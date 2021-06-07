@@ -91,6 +91,7 @@ CONFIGURATION FILE CHANGES (see man appropriate man page for details)
  -- Removed DefaultStorage{Host,Loc,Pass,Port,Type,User} options.
  -- Removed CacheGroups, CheckpointType, JobCheckpointDir, MemLimitEnforce,
     SchedulerPort, SchedulerRootFilter options.
+ -- Rename SbcastParameters to BcastParameters.
 
 COMMAND CHANGES (see man pages for details)
 ===========================================
@@ -116,6 +117,7 @@ COMMAND CHANGES (see man pages for details)
  -- slurmrestd - do not run allow operation as SlurmUser/root by default.
  -- "scontrol show node" now shows State as base_state+flags instead of
     shortened state with flags appended.
+ -- Make srun sensitive to BcastParameters.
 
 API CHANGES
 ===========
