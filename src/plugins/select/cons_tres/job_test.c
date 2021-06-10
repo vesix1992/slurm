@@ -2252,6 +2252,12 @@ static int _eval_nodes_topo(job_record_t *job_ptr,
 			_cpus_to_use(&avail_cpus, rem_max_cpus, min_rem_nodes,
 				     details_ptr, avail_res_array[i], i,
 				     cr_type);
+			if (gres_per_job) {
+				gres_sched_add(
+					job_ptr->gres_list_req,
+					avail_res_array[i]->sock_gres_list,
+					&avail_cpus);
+			}
 			if (avail_cpus == 0) {
 				debug2("%pJ insufficient resources on required node",
 				       job_ptr);
@@ -2265,12 +2271,6 @@ static int _eval_nodes_topo(job_record_t *job_ptr,
 			total_cpus += avail_cpus;
 			rem_cpus   -= avail_cpus;
 			rem_max_cpus -= avail_cpus;
-			if (gres_per_job) {
-				gres_sched_add(
-					job_ptr->gres_list_req,
-					avail_res_array[i]->sock_gres_list,
-					&avail_cpus);
-			}
 		}
 
 		node_ptr = node_record_table_ptr + i;
@@ -2492,15 +2492,15 @@ static int _eval_nodes_topo(job_record_t *job_ptr,
 			_cpus_to_use(&avail_cpus, rem_max_cpus, min_rem_nodes,
 				     details_ptr, avail_res_array[i], i,
 				     cr_type);
-			total_cpus += avail_cpus;
-			rem_cpus   -= avail_cpus;
-			rem_max_cpus -= avail_cpus;
 			if (gres_per_job) {
 				gres_sched_add(
 					job_ptr->gres_list_req,
 					avail_res_array[i]->sock_gres_list,
 					&avail_cpus);
 			}
+			total_cpus += avail_cpus;
+			rem_cpus   -= avail_cpus;
+			rem_max_cpus -= avail_cpus;
 		}
 
 		for (i = 0, switch_ptr = switch_record_table;
@@ -2590,12 +2590,6 @@ static int _eval_nodes_topo(job_record_t *job_ptr,
 				_cpus_to_use(&avail_cpus, rem_max_cpus,
 					     min_rem_nodes, details_ptr,
 					     avail_res_array[j], j, cr_type);
-				rem_nodes--;
-				min_rem_nodes--;
-				max_nodes--;
-				total_cpus += avail_cpus;
-				rem_cpus   -= avail_cpus;
-				rem_max_cpus -= avail_cpus;
 				if (gres_per_job) {
 					gres_sched_add(
 						job_ptr->gres_list_req,
@@ -2603,6 +2597,12 @@ static int _eval_nodes_topo(job_record_t *job_ptr,
 						sock_gres_list,
 						&avail_cpus);
 				}
+				rem_nodes--;
+				min_rem_nodes--;
+				max_nodes--;
+				total_cpus += avail_cpus;
+				rem_cpus   -= avail_cpus;
+				rem_max_cpus -= avail_cpus;
 				bit_set(node_map, j);
 				if ((rem_nodes <= 0) && (rem_cpus <= 0) &&
 				    (!gres_per_job ||
@@ -2663,15 +2663,15 @@ static int _eval_nodes_topo(job_record_t *job_ptr,
 			_cpus_to_use(&avail_cpus, rem_max_cpus, min_rem_nodes,
 				     details_ptr, avail_res_array[i], i,
 				     cr_type);
-			total_cpus += avail_cpus;
-			rem_cpus   -= avail_cpus;
-			rem_max_cpus -= avail_cpus;
 			if (gres_per_job) {
 				gres_sched_add(
 					job_ptr->gres_list_req,
 					avail_res_array[i]->sock_gres_list,
 					&avail_cpus);
 			}
+			total_cpus += avail_cpus;
+			rem_cpus   -= avail_cpus;
+			rem_max_cpus -= avail_cpus;
 			bit_set(node_map, i);
 			if ((rem_nodes <= 0) && (rem_cpus <= 0) &&
 			    (!gres_per_job ||
