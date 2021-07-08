@@ -1127,7 +1127,7 @@ int read_slurm_conf(int recover, bool reconfig)
 	if (reconfig)
 		cgroup_conf_reinit();
 	else
-		slurm_cgroup_conf_init();
+		cgroup_conf_init();
 
 	cgroup_mem_confinement = cgroup_memcg_job_confinement();
 
