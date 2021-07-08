@@ -44,10 +44,10 @@
 #include "libcxi/libcxi.h"
 
 // Global variables
-bool cxi_avail = false;
-struct cxil_dev **cxi_devs;
-int cxi_ndevs;
-struct cxi_rsrc_limits cxi_limits;
+static void *cxi_handle = NULL;
+static bool cxi_avail = false;
+static struct cxil_dev **cxi_devs;
+static int cxi_ndevs = 0;
 
 // Function pointers loaded from libcxi
 static int (*cxil_get_device_list_p)(struct cxil_device_list **);
@@ -55,15 +55,12 @@ static int (*cxil_open_device_p)(uint32_t, struct cxil_dev **);
 static int (*cxil_alloc_svc_p)(struct cxil_dev *, struct cxi_svc_desc *);
 static int (*cxil_destroy_svc_p)(struct cxil_dev *, unsigned int);
 
-// Static function needed by functions above it
-static bool _destroy_profiles(slingshot_jobinfo_t *job);
-
 
 #define LOOKUP_SYM(_lib, x) \
 do { \
 	x ## _p = dlsym(_lib, #x); \
 	if (x ## _p == NULL) { \
-		SSERROR("Error loading symbol %s: %s", #x, dlerror()); \
+		error("Error loading symbol %s: %s", #x, dlerror()); \
 		return false; \
 	} \
 } while (0)
@@ -78,9 +75,10 @@ static bool _load_cxi_funcs(void *lib)
 	return true;
 }
 
-static void _print_devinfo(int idx, struct cxil_devinfo *info)
+static void _print_devinfo(int dev, struct cxil_devinfo *info)
 {
-#define PDEVINFO(FMT, ...) debug("devinfo[%d]: " FMT, idx, ##__VA_ARGS__)
+#define PDEVINFO(FMT, ...) \
+	log_flag(SWITCH, "devinfo[%d]: " FMT, dev, ##__VA_ARGS__)
 
 	PDEVINFO("device_name='%s' driver_name='%s'",
 		info->device_name, info->driver_name);
@@ -89,7 +87,7 @@ static void _print_devinfo(int idx, struct cxil_devinfo *info)
 	PDEVINFO("pid_granule=%u min_free_shift=%u rdzv_get_idx=%u",
 		info->pid_granule, info->min_free_shift, info->rdzv_get_idx);
 	PDEVINFO("vendor_id=%u device_id=%u device_rev=%u device_proto=%u"
-		 "  device_platform=%u",
+		 " device_platform=%u",
 		info->vendor_id, info->device_id, info->device_rev,
 		info->device_proto, info->device_platform);
 	PDEVINFO("num_ptes=%hu num_txqs=%hu num_tgqs=%hu num_eqs=%hu",
@@ -112,30 +110,31 @@ static void _print_devinfo(int idx, struct cxil_devinfo *info)
  */
 static bool _get_reserved_limits(int dev, slingshot_limits_set_t *limits)
 {
-	int rc;
+	int svc, rc;
 	struct cxil_svc_list *list = NULL;
 
 	if ((rc = cxil_get_svc_list(cxi_devs[dev], &list))) {
-		SSERROR("Could not get service list for CXI device %d:"
+		error("Could not get service list for CXI device %d:"
 			" %d %d", dev, rc, errno);
 		return false;
 	}
-	for (int i = 0; i < list->count; i++) {
-		if (!list->descs[i].is_system_svc)
-			continue;
+	for (svc = 0; svc < list->count; svc++) {
 #define PLIMIT(DEV, SVC, LIM) { \
 	limits->LIM.res += list->descs[SVC].limits.LIM.res; \
-	debug("CXI dev[%d]: svc %d: limits.%s.res %hu (tot %d)", \
-	 DEV, SVC, #LIM, list->descs[SVC].limits.LIM.res, limits->LIM.res); \
+	log_flag(SWITCH, "CXI dev/svc/system[%d][%d][%d]: limits.%s.res %hu" \
+		" (tot/max %hu %hu)", \
+		DEV, SVC, list->descs[SVC].is_system_svc, #LIM, \
+		list->descs[SVC].limits.LIM.res, limits->LIM.res, \
+		list->descs[SVC].limits.LIM.max); \
 }
-		PLIMIT(dev, i, ptes);
-		PLIMIT(dev, i, txqs);
-		PLIMIT(dev, i, tgqs);
-		PLIMIT(dev, i, eqs);
-		PLIMIT(dev, i, cts);
-		PLIMIT(dev, i, acs);
-		PLIMIT(dev, i, tles);
-		PLIMIT(dev, i, les);
+		PLIMIT(dev, svc, ptes);
+		PLIMIT(dev, svc, txqs);
+		PLIMIT(dev, svc, tgqs);
+		PLIMIT(dev, svc, eqs);
+		PLIMIT(dev, svc, cts);
+		PLIMIT(dev, svc, acs);
+		PLIMIT(dev, svc, tles);
+		PLIMIT(dev, svc, les);
 #undef PLIMIT
 	}
 	free(list);	// can't use xfree()
@@ -148,17 +147,17 @@ static bool _get_reserved_limits(int dev, slingshot_limits_set_t *limits)
 static bool _create_cxi_devs(void)
 {
 	struct cxil_device_list *list;
-	int rc;
+	int dev, rc;
 
 	if ((rc = cxil_get_device_list_p(&list))) {
-		SSERROR("Could not get a list of the CXI devices: %d %d",
+		error("Could not get a list of the CXI devices: %d %d",
 			  rc, errno);
 		return false;
 	}
 	
 	// If there are no CXI NICs, just say it's unsupported
 	if (!list->count) {
-		SSERROR("No CXI devices available");
+		error("No CXI devices available");
 		return false;
 	}
 
@@ -167,61 +166,54 @@ static bool _create_cxi_devs(void)
 
 	// We're OK with only getting access to a subset
 	slingshot_limits_set_t reslimits = { 0 };
-	for (int d = 0; d < cxi_ndevs; d++) {
-		struct cxil_devinfo *info = &list->info[d];
-		_print_devinfo(d, info);
-		if ((rc = cxil_open_device_p(info->dev_id, &cxi_devs[d]))) {
-			SSERROR("Could not open CXI device %d: %d %d",
-				d, rc, errno);
+	for (dev = 0; dev < cxi_ndevs; dev++) {
+		struct cxil_devinfo *info = &list->info[dev];
+		if ((rc = cxil_open_device_p(info->dev_id, &cxi_devs[dev]))) {
+			error("Could not open CXI device %d: %d %d",
+				dev, rc, errno);
 			continue;
 		}
-		_print_devinfo(d, &cxi_devs[d]->info);
-		_get_reserved_limits(d, &reslimits);
+		// Only done in debug mode
+		if (slurm_conf.debug_flags & DEBUG_FLAG_SWITCH)
+			_print_devinfo(dev, &cxi_devs[dev]->info);
+		if (slurm_conf.debug_flags & DEBUG_FLAG_SWITCH)
+			_get_reserved_limits(dev, &reslimits);
 	}
 
 	return true;
 }
 
 /*
- * Open the Slingshot CXI library; set up functions and set cxi_avail
- * if successful (default is 'false')
+ * Return a cxi_limits struct with res/max fields set according to
+ * job max/res/def limits, device max limits, and number of CPUs on node
  */
-extern bool slingshot_open_cxi_lib(void)
+static struct cxi_limits set_desc_limits(const char *name,
+	const slingshot_limits_t *joblimits, uint16_t dev_max, int ncpus)
 {
-	char *libfile;
-	void *lib;
+	struct cxi_limits ret;
 
-	if (!(libfile = getenv(SLINGSHOT_CXI_LIB_ENV)))
-		libfile = SLINGSHOT_CXI_LIB;
-
-	if (!libfile || libfile[0] == '\0') {
-		SSERROR("Bad library file specified by %s variable",
-			SLINGSHOT_CXI_LIB_ENV);
-		goto out;
-	}
-
-	if (!(lib = dlopen(libfile, RTLD_LAZY | RTLD_GLOBAL))) {
-		SSERROR("Couldn't find CXI library %s: %s", libfile, dlerror());
-		goto out;
-	}
-
-	if (!_load_cxi_funcs(lib))
-		goto out;
-
-	if (!_create_cxi_devs())
-		goto out;
-
-	cxi_avail = true;
-out:
-	return cxi_avail;
+	// Restrict job max to device max
+	ret.max = MIN(joblimits->max, dev_max);
+	// If job reserved is set, use that, otherwise job default * ncpus
+	ret.res = joblimits->res ? joblimits->res : (joblimits->def * ncpus);
+	// Reserved can't be higher than max
+	ret.res = MIN(ret.res, ret.max);
+	log_flag(SWITCH, "job %s.max/res/def/cpus %hu %hu %hu %d"
+		" CXI desc %s.max/res %hu %hu",
+		name, joblimits->max, joblimits->res, joblimits->def, ncpus,
+		name, ret.max, ret.res);
+	return ret;
 }
 
 /*
  * Initialize a cxi_svc_desc with our CXI settings
  */
 static void _create_cxi_descriptor(struct cxi_svc_desc *desc,
-	const slingshot_jobinfo_t *job, uint32_t uid, uint16_t step_cpus)
+	const struct cxil_devinfo *devinfo, const slingshot_jobinfo_t *job,
+	uint32_t uid, uint16_t step_cpus)
 {
+	int cpus;
+
 	memset(desc, 0, sizeof(*desc));
 
 #if CXI_SVC_MEMBER_UID
@@ -257,24 +249,28 @@ static void _create_cxi_descriptor(struct cxi_svc_desc *desc,
 
 	// Set up resource limits
 	desc->resource_limits = true;
-	if (job->depth)
-
-#define SETLIMIT(LIM) { \
-	desc->limits.LIM.max = job->limits.LIM.max; \
-	desc->limits.LIM.res = job->limits.LIM.res ? \
-		job->limits.LIM.res : job->limits.LIM.def * step_cpus; \
-	debug("CXI desc.%s.max/res %hu %hu", #LIM, desc->limits.LIM.max, \
-		desc->limits.LIM.res); \
-}
-	SETLIMIT(txqs);
-	SETLIMIT(tgqs);
-	SETLIMIT(eqs);
-	SETLIMIT(cts);
-	SETLIMIT(tles);
-	SETLIMIT(ptes);
-	SETLIMIT(les);
-	SETLIMIT(acs);
-#undef SETLIMIT
+	/*
+	 * If --network=depth=<X> (job->depth) is used, use that as
+	 * the multiplier for the per-thread limit reservation setting;
+	 * otherwise use the number of CPUs for this step
+	 */
+	cpus = job->depth ? job->depth : step_cpus;
+	desc->limits.txqs = set_desc_limits("txqs", &job->limits.txqs,
+					    devinfo->num_txqs, cpus);
+	desc->limits.tgqs = set_desc_limits("tgqs", &job->limits.tgqs,
+					    devinfo->num_tgqs, cpus);
+	desc->limits.eqs = set_desc_limits("eqs", &job->limits.eqs,
+					    devinfo->num_eqs, cpus);
+	desc->limits.cts = set_desc_limits("cts", &job->limits.cts,
+					    devinfo->num_cts, cpus);
+	desc->limits.tles = set_desc_limits("tles", &job->limits.tles,
+					    devinfo->num_tles, cpus);
+	desc->limits.ptes = set_desc_limits("ptes", &job->limits.ptes,
+					    devinfo->num_ptes, cpus);
+	desc->limits.les = set_desc_limits("les", &job->limits.les,
+					    devinfo->num_les, cpus);
+	desc->limits.acs = set_desc_limits("acs", &job->limits.acs,
+					    devinfo->num_acs, cpus);
 
 	// Service persists after the device is closed
 	desc->persistent = false;
@@ -284,78 +280,64 @@ static void _create_cxi_descriptor(struct cxi_svc_desc *desc,
 }
 
 /*
- * Create CXI Services for each of the CXI NICs on this host
+ * Open the Slingshot CXI library; set up functions and set cxi_avail
+ * if successful (default is 'false')
  */
-static bool _create_profiles(
-	slingshot_jobinfo_t *job, uint32_t uid, uint16_t step_cpus)
+extern bool slingshot_open_cxi_lib(void)
 {
-	struct cxi_svc_desc desc;
+	char *libfile;
 
-	// Just return true if CXI not available or no VNIs to set up
-	if (!cxi_avail || !job->num_vnis) {
-		SSDEBUG("cxi_avail=%d num_vnis=%d, ret true",
-			cxi_avail, job->num_vnis);
-		return true;
+	if (!(libfile = getenv(SLINGSHOT_CXI_LIB_ENV)))
+		libfile = SLINGSHOT_CXI_LIB;
+
+	if (!libfile || libfile[0] == '\0') {
+		error("Bad library file specified by %s variable",
+			SLINGSHOT_CXI_LIB_ENV);
+		goto out;
 	}
 
-	job->num_profiles = cxi_ndevs;
-	job->profiles = xcalloc(job->num_profiles, sizeof(*job->profiles));
-
-	// Create a Service for each NIC
-	for (int p = 0; p < cxi_ndevs; p++) {
-		// Set what we'll need in the CXI Service
-		_create_cxi_descriptor(&desc, job, uid, step_cpus);
-
-		struct cxil_dev *dev = cxi_devs[p];
-		int svc_id = cxil_alloc_svc_p(dev, &desc);
-		if (svc_id < 0) {
-			SSERROR("Could not create a CXI Service for"
-				" NIC %d (%s) (error %d)",
-				p, dev->info.device_name, svc_id);
-			goto error;
-		}
-
-		pals_comm_profile_t *profile = &job->profiles[p];
-		profile->svc_id = svc_id;
-		for (int v = 0; v < job->num_vnis; v++)
-			profile->vnis[v] = job->vnis[v];
-		profile->tcs = job->tcs;
-		snprintf(profile->device_name, sizeof(profile->device_name),
-			"%s", dev->info.device_name);
-
-		SSDEBUG("[%d]: svc_id=%u vnis=%hu %hu %hu %hu tcs=%u name='%s'",
-			p, profile->svc_id, profile->vnis[0],
-			profile->vnis[1], profile->vnis[2], profile->vnis[3],
-			profile->tcs, profile->device_name);
+	if (!(cxi_handle = dlopen(libfile, RTLD_LAZY | RTLD_GLOBAL))) {
+		error("Couldn't find CXI library %s: %s", libfile, dlerror());
+		goto out;
 	}
-	return true;
 
-error:
-	_destroy_profiles(job);
-	return false;
+	if (!_load_cxi_funcs(cxi_handle))
+		goto out;
+
+	if (!_create_cxi_devs())
+		goto out;
+
+	cxi_avail = true;
+out:
+	log_flag(SWITCH, "cxi_avail=%d", cxi_avail);
+	return cxi_avail;
 }
 
 /*
  * In the daemon, when the shepherd for an App terminates, free any CXI
  * Services we have allocated for it
  */
-static bool _destroy_profiles(slingshot_jobinfo_t *job)
+extern bool slingshot_destroy_services(slingshot_jobinfo_t *job)
 {
+	int prof;
+
+	xassert(job);
+
 	if (!cxi_avail)
 		return true;
 
-	for (int p = 0; p < job->num_profiles; p++) {
-		int svc_id = job->profiles[p].svc_id;
+	for (prof = 0; prof < job->num_profiles; prof++) {
+		int svc_id = job->profiles[prof].svc_id;
 
 		// Service ID 0 means not a Service
 		if (svc_id <= 0) continue;
 
-		SSDEBUG("Destroying CXI SVC ID %d on NIC %s",
-			svc_id, cxi_devs[p]->info.device_name);
+		debug("Destroying CXI SVC ID %d on NIC %s",
+			svc_id, cxi_devs[prof]->info.device_name);
 
-		int rc = cxil_destroy_svc_p(cxi_devs[p], svc_id);
+		int rc = cxil_destroy_svc_p(cxi_devs[prof], svc_id);
 		if (rc) {
-			SSERROR("Failed to destroy CXI Service ID %d: %d",
+			error("Failed to destroy CXI Service ID %d: %d",
 				svc_id, errno);
 			return false;
 		}
@@ -373,17 +355,75 @@ static bool _destroy_profiles(slingshot_jobinfo_t *job)
 extern bool slingshot_create_services(
 	slingshot_jobinfo_t *job, uint32_t uid, uint16_t step_cpus)
 {
+	int prof;
+	struct cxi_svc_desc desc;
+	struct cxil_dev *dev;
+	pals_comm_profile_t *profile;
+
 	xassert(job);
-	SSDEBUG("job=%p", job);
-	return _create_profiles(job, uid, step_cpus);
+
+	// dlopen() libcxi and query CXI devices
+	if (!slingshot_open_cxi_lib())
+		return false;
+
+	// Just return true if CXI not available or no VNIs to set up
+	if (!cxi_avail || !job->num_vnis) {
+		log_flag(SWITCH, "cxi_avail=%d num_vnis=%d, ret true",
+			cxi_avail, job->num_vnis);
+		return true;
+	}
+
+	job->num_profiles = cxi_ndevs;
+	job->profiles = xcalloc(job->num_profiles, sizeof(*job->profiles));
+
+	// Create a Service for each NIC
+	for (prof = 0; prof < cxi_ndevs; prof++) {
+		dev = cxi_devs[prof];
+
+		// Set what we'll need in the CXI Service
+		_create_cxi_descriptor(&desc, &dev->info, job, uid, step_cpus);
+
+		int svc_id = cxil_alloc_svc_p(dev, &desc);
+		if (svc_id < 0) {
+			error("Could not create a CXI Service for"
+				" NIC %d (%s) (error %d)",
+				prof, dev->info.device_name, svc_id);
+			goto error;
+		}
+
+		profile = &job->profiles[prof];
+		profile->svc_id = svc_id;
+		for (int v = 0; v < job->num_vnis; v++)
+			profile->vnis[v] = job->vnis[v];
+		profile->tcs = job->tcs;
+		snprintf(profile->device_name, sizeof(profile->device_name),
+			"%s", dev->info.device_name);
+
+		debug("Creating CXI profile[%d] on NIC %s:"
+			" SVC ID %u vnis=%hu %hu %hu %hu tcs=%u",
+			prof, profile->device_name, profile->svc_id,
+			profile->vnis[0], profile->vnis[1], profile->vnis[2],
+			profile->vnis[3], profile->tcs);
+	}
+	return true;
+
+error:
+	slingshot_destroy_services(job);
+	return false;
 }
 
 /*
- * Destroy up CXI services for each of the CXI NICs on this host
+ * Free any allocated space before unloading the plugin
  */
-extern bool slingshot_destroy_services(slingshot_jobinfo_t *job)
+extern void slingshot_free_services(void)
 {
-	SSDEBUG("job=%p", job);
-	xassert(job);
-	return _destroy_profiles(job);
+	if (cxi_handle)
+		dlclose(cxi_handle);
+
+	if (cxi_devs) {
+		int i;
+		for (i = 0; i < cxi_ndevs; i++)
+			free(cxi_devs[i]);
+	}
+	free(cxi_devs);
 }

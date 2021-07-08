@@ -101,10 +101,10 @@ static bool _config_vnis(
 
 	*min_ptr = min;
 	*max_ptr = max;
-	SSDEBUG("[token=%s]: min/max %hu %hu", token, min, max);
+	log_flag(SWITCH, "[token=%s]: min/max %hu %hu", token, min, max);
 	return true;
 err:
-	SSERROR("Invalid vni token '%s' (example: 'vnis=10-100',"
+	error("Invalid vni token '%s' (example: 'vnis=10-100',"
 		" valid range %d-%d)",
 		token, SLINGSHOT_VNI_MIN, SLINGSHOT_VNI_MAX);
 	return false;
@@ -124,7 +124,7 @@ static bool _setup_vni_table(uint16_t min, uint16_t max)
 	uint16_t oldmax = slingshot_state.vni_max;
 	bitstr_t *table = slingshot_state.vni_table;
 
-	SSDEBUG("oldmin/max/size %hu %hu %zu min/max/size %hu %hu %zu",
+	log_flag(SWITCH, "oldmin/max/size %hu %hu %zu min/max/size %hu %hu %zu",
 		oldmin, oldmax, oldsize, min, max, newsize);
 
 	// If no recovery of vni_table, just set up new one
@@ -168,7 +168,7 @@ done:
 		slingshot_state.vni_last = min - 1;
 	slingshot_state.vni_table = table;
 
-	SSDEBUG("version=%d min/max/last=%hu %hu %hu (%zu)",
+	log_flag(SWITCH, "version=%d min/max/last=%hu %hu %hu (%zu)",
 		slingshot_state.version, slingshot_state.vni_min, 
 		slingshot_state.vni_max, slingshot_state.vni_last, newsize);
 	return true;
@@ -215,12 +215,12 @@ static bool _config_tcs(const char *token)
 		goto err;
 
 	slingshot_config.tcs = tcbits;
-	SSDEBUG("[token=%s]: tcs %#x", token, tcbits);
+	log_flag(SWITCH, "[token=%s]: tcs %#x", token, tcbits);
 	xfree(tcs);
 	return true;
 err:
 	xfree(tcs);
-	SSERROR("Invalid traffic class token '%s' (example"
+	error("Invalid traffic class token '%s' (example"
 		" 'tcs=DEDICATED_ACCESS:LOW_LATENCY:BULK_DATA:BEST_EFFORT')",
 		token);
 	return false;
@@ -243,7 +243,8 @@ static limits_table_t limits_table[] = {
 	{ "les",  offsetof(slingshot_limits_set_t, les),  SLINGSHOT_LE_MAX },
 	{ "acs",  offsetof(slingshot_limits_set_t, acs),  SLINGSHOT_AC_MAX },
 };
-const int num_limits = sizeof(limits_table) / sizeof(limits_table[0]);
+static const int num_limits = sizeof(limits_table) / sizeof(limits_table[0]);
+static const char *all_limits = "txqs,tgqs,eqs,cts,tles,ptes,les,acs";
 
 /*
  * Check whether the token is a Slingshot resource limit token,
@@ -252,7 +253,7 @@ const int num_limits = sizeof(limits_table) / sizeof(limits_table[0]);
 static bool _config_limits(const char *token, slingshot_limits_set_t *limits)
 {
 	char *tok, *arg, *end_ptr;
-	const char *name;
+	const char *name, *typestr;
 	enum { DEF = 1, RES, MAX } type;
 	int i, limit;
 	const char def_str[] = "def_";
@@ -272,12 +273,15 @@ static bool _config_limits(const char *token, slingshot_limits_set_t *limits)
 	// Parse "{def,res,max}_" prefix
 	if (!strncmp(tok, def_str, def_siz)) {
 		type = DEF;
+		typestr = "def";
 		name = tok + def_siz;
 	} else if (!strncmp(tok, res_str, res_siz)) {
 		type = RES;
+		typestr = "res";
 		name = tok + res_siz;
 	} else if (!strncmp(tok, max_str, max_siz)) {
 		type = MAX;
+		typestr = "max";
 		name = tok + max_siz;
 	} else {
 		goto err;
@@ -296,9 +300,9 @@ static bool _config_limits(const char *token, slingshot_limits_set_t *limits)
 	limit = strtol(arg, &end_ptr, 10);
 	if (!end_ptr || end_ptr == arg || *end_ptr != '\0')
 		goto err;
-	if (limit <= 0 || limit > entry->max) {
-		SSERROR("Invalid limit token '%s': invalid limit %d"
-		      " (valid range 1-%d)", token, limit, entry->max);
+	if (limit < 0 || limit > entry->max) {
+		error("Invalid limit token '%s': invalid limit %d"
+		      " (valid range 0-%d)", token, limit, entry->max);
 		goto out;
 	}
 	limit_ptr = (slingshot_limits_t *)(((void *) limits) + entry->offset);
@@ -309,38 +313,32 @@ static bool _config_limits(const char *token, slingshot_limits_set_t *limits)
 	} else if (type == MAX) {
 		limit_ptr->max = limit;
 	}
-	SSDEBUG("[token=%s]: limits[%d].%s %d", token, i, entry->name, limit);
+	log_flag(SWITCH, "[token=%s]: limits[%d].%s.%s %d",
+		token, i, entry->name, typestr, limit);
 	xfree(tok);
 	return true;
 err:
-	SSERROR("Invalid limit token '%s' (example {max,res,def}_<type>)",
-		token);
+	error("Invalid limit token '%s' (example {max,res,def}_{%s})",
+		token, all_limits);
 out:
 	xfree(tok);
 	return false;
 }
 
-static void _print_limits(const char *label, slingshot_limits_set_t *set)
+static void _print_limits(slingshot_limits_set_t *limits)
 {
-#define DEBUG_LIMIT(X) \
-	debug("%s: %s: max/res/def %hu %hu %hu", label, #X, \
-		set->X.max, set->X.res, set->X.def);
-	DEBUG_LIMIT(txqs);
-	DEBUG_LIMIT(tgqs);
-	DEBUG_LIMIT(eqs);
-	DEBUG_LIMIT(cts);
-	DEBUG_LIMIT(tles);
-	DEBUG_LIMIT(ptes);
-	DEBUG_LIMIT(les);
-	DEBUG_LIMIT(acs);
+#define DEBUG_LIMIT(SET, LIM) \
+	debug("%s: max/res/def %hu %hu %hu", \
+		#LIM, SET->LIM.max, SET->LIM.res, SET->LIM.def);
+	DEBUG_LIMIT(limits, txqs);
+	DEBUG_LIMIT(limits, tgqs);
+	DEBUG_LIMIT(limits, eqs);
+	DEBUG_LIMIT(limits, cts);
+	DEBUG_LIMIT(limits, tles);
+	DEBUG_LIMIT(limits, ptes);
+	DEBUG_LIMIT(limits, les);
+	DEBUG_LIMIT(limits, acs);
 #undef DEBUG_LIMIT
-}
-
-static void _print_config(const char *label, slingshot_config_t *config)
-{
-	debug("%s: single_node_vni=%d user_vni=%d tcs=%#x",
-		label, config->single_node_vni, config->user_vni, config->tcs);
-	_print_limits(label, &config->limits);
 }
 
 /*
@@ -351,7 +349,7 @@ extern bool slingshot_setup_config(const char *switch_params)
 {
 	char *params = NULL, *token, *save_ptr = NULL;
 
-	SSDEBUG("switch_params=%s", switch_params);
+	log_flag(SWITCH, "switch_params=%s", switch_params);
 	/*
 	 * Handle SwitchParameters values (separated by commas):
 	 *
@@ -397,10 +395,8 @@ extern bool slingshot_setup_config(const char *switch_params)
 			if (!_config_tcs(token))
 				goto err;
 		} else if (!strcasecmp(token, "single_node_vni")) {
-			SSDEBUG("single_node_vni true");
 			slingshot_config.single_node_vni = true;
 		} else if (!strcasecmp(token, "user_vni")) {
-			SSDEBUG("user_vni true");
 			slingshot_config.user_vni = true;
 		} else {
 			if (!_config_limits(token, &slingshot_config.limits))
@@ -409,7 +405,11 @@ extern bool slingshot_setup_config(const char *switch_params)
 	}
 
 out:
-	_print_config(__func__, &slingshot_config);
+	debug("single_node_vni=%d user_vni=%d tcs=%#x", \
+		slingshot_config.single_node_vni, slingshot_config.user_vni,
+		slingshot_config.tcs);
+	_print_limits(&slingshot_config.limits);
+
 	xfree(params);
 	return true;
 
@@ -431,20 +431,20 @@ static uint16_t _alloc_vni(void)
 	start = slingshot_state.vni_last - slingshot_state.vni_min + 1;
 	end = slingshot_state.vni_max - slingshot_state.vni_min;
 	xassert(start >= 0);
-	SSDEBUG("upper bits: start/end %zu %zu", start, end);
+	log_flag(SWITCH, "upper bits: start/end %zu %zu", start, end);
 	for (bit = start; bit <= end; bit++) {
 		if (!bit_test(slingshot_state.vni_table, bit))
 			goto gotvni;
 	}
 	// Search for clear bit from [vni_min...vni_last]
 	end = slingshot_state.vni_last - slingshot_state.vni_min;
-	SSDEBUG("lower bits: start/end %zu %zu", start, end);
+	log_flag(SWITCH, "lower bits: start/end %zu %zu", start, end);
 	for (bit = 0; bit <= end; bit++) {
 		if (!bit_test(slingshot_state.vni_table, bit))
 			goto gotvni;
 	}
 	// TODO: developer's mode: check for no bits set?
-	SSERROR("Cannot allocate VNI (min/max/last %hu %hu %hu)",
+	error("Cannot allocate VNI (min/max/last %hu %hu %hu)",
 		slingshot_state.vni_min, slingshot_state.vni_max,
 		slingshot_state.vni_last);
 	return 0;
@@ -454,7 +454,7 @@ gotvni:
 	xassert(bit + slingshot_state.vni_min <= SLINGSHOT_VNI_MAX);
 	vni = bit + slingshot_state.vni_min;
 	slingshot_state.vni_last = vni;
-	SSDEBUG("min/max/last %hu %hu %hu vni=%hu",
+	log_flag(SWITCH, "min/max/last %hu %hu %hu vni=%hu",
 		slingshot_state.vni_min, slingshot_state.vni_max,
 		slingshot_state.vni_last, vni);
 	return vni;
@@ -472,10 +472,11 @@ static uint16_t _alloc_user_vni(uint32_t uid)
 	uint16_t vni;
 
 	// Check if this uid is in the table already
-	for (int i = 0; i < slingshot_state.num_user_vnis; i++) {
+	for (i = 0; i < slingshot_state.num_user_vnis; i++) {
 		if (slingshot_state.user_vnis[i].uid == uid) {
 			vni = slingshot_state.user_vnis[i].vni;
-			SSDEBUG("[uid=%u]: found user_vnis[%d/%d] vni=%hu",
+			log_flag(SWITCH,
+				"[uid=%u]: found user_vnis[%d/%d] vni=%hu",
 				uid, i, slingshot_state.num_user_vnis, vni);
 			return vni;
 		}
@@ -491,7 +492,7 @@ static uint16_t _alloc_user_vni(uint32_t uid)
 	i = slingshot_state.num_user_vnis - 1;
 	slingshot_state.user_vnis[i].uid = uid;
 	slingshot_state.user_vnis[i].vni = vni;
-	SSDEBUG("[uid=%u]: new vni[%d] vni=%hu", uid, i, vni);
+	log_flag(SWITCH, "[uid=%u]: new vni[%d] vni=%hu", uid, i, vni);
 	return vni;
 }
 
@@ -511,7 +512,7 @@ static void _free_vni(uint16_t vni)
 	bitoff_t bit = vni - slingshot_state.vni_min;
 	xassert(bit_test(slingshot_state.vni_table, bit));
 	bit_clear(slingshot_state.vni_table, bit);
-	SSDEBUG("[vni=%hu]: bit %zu", vni, bit);
+	log_flag(SWITCH, "[vni=%hu]: bit %zu", vni, bit);
 }
 
 /*
@@ -528,10 +529,10 @@ static uint32_t _setup_depth(const char *token)
 	ret = strtol(arg, &end_ptr, 10);
 	if (*end_ptr || ret < 1 || ret > 1024)
 		goto err;
-	SSDEBUG("[token=%s]: depth %u", token, ret);
+	log_flag(SWITCH, "[token=%s]: depth %u", token, ret);
 	return ret;
 err:
-	SSERROR("Invalid depth token '%s' (valid range %d-%d)",
+	error("Invalid depth token '%s' (valid range %d-%d)",
 		token, 1, 1024);
 	return 0;
 }
@@ -545,7 +546,7 @@ static bool _setup_network_params(
 {
 	char *params = NULL, *token, *save_ptr = NULL;
 
-	SSDEBUG("network_params=%s", network_params);
+	log_flag(SWITCH, "network_params=%s", network_params);
 
 	// First, copy limits from slingshot_config to job
 	job->limits = slingshot_config.limits;
@@ -573,7 +574,8 @@ static bool _setup_network_params(
 			goto err;
 	}
 
-	_print_limits(__func__, &job->limits);
+	if (slurm_conf.debug_flags & DEBUG_FLAG_SWITCH)
+		_print_limits(&job->limits);
 	xfree(params);
 	return true;
 err:
