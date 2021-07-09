@@ -66,6 +66,12 @@ HIGHLIGHTS
  -- service files - change dependency to network-online rather than just
     network to ensure DNS and other services are available.
  -- Add "Extra" field to node to store extra information other than a comment.
+ -- memory.force_empty is not set anymore in jobacctgather/cgroup when deleting
+    a cgroup. This caused an important delay (~2s) when terminating a job and
+    wasn't providing any real benefit. If any, this can have an impact on the
+    kernel mem page cache since kernel cgroup memory is now not freed
+    immediately on rmdir but instead it is released when the system is under
+    high memory pressure.
 
 CONFIGURATION FILE CHANGES (see man appropriate man page for details)
 =====================================================================
