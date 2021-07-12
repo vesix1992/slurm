@@ -483,8 +483,9 @@ static uint16_t _alloc_user_vni(uint32_t uid)
 
 	// Allocate new slot in user_vnis table
 	slingshot_state.num_user_vnis++;
-	slingshot_state.user_vnis = xrealloc(slingshot_state.user_vnis,
-			slingshot_state.num_user_vnis * sizeof(user_vni_t));
+	xrecalloc(slingshot_state.user_vnis, slingshot_state.num_user_vnis,
+		  sizeof(user_vni_t));
+
 	if (!(vni = _alloc_vni()))
 		return 0;
 
