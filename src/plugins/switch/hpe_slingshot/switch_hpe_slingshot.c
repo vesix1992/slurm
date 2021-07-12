@@ -123,7 +123,7 @@ extern int switch_p_reconfig(void)
  */
 int switch_p_libstate_save(char *dir_name)
 {
-	int i, state_fd;
+	int state_fd;
 	buf_t *state_buf;
 	char *new_state_file, *state_file, *buf;
 	size_t buflen;
@@ -140,7 +140,7 @@ int switch_p_libstate_save(char *dir_name)
 	pack16(slingshot_state.vni_last, state_buf);
 	pack_bit_str_hex(slingshot_state.vni_table, state_buf);
 	pack32(slingshot_state.num_user_vnis, state_buf);
-	for (i = 0; i < slingshot_state.num_user_vnis; i++) {
+	for (int i = 0; i < slingshot_state.num_user_vnis; i++) {
 		pack32(slingshot_state.user_vnis[i].uid, state_buf);
 		pack16(slingshot_state.user_vnis[i].vni, state_buf);
 	}
@@ -281,6 +281,7 @@ int switch_p_libstate_clear(void)
 	if (slingshot_state.vni_table)
 		bit_free(slingshot_state.vni_table);
 	xfree(slingshot_state.user_vnis);
+
 	return SLURM_SUCCESS;
 }
 
@@ -290,12 +291,13 @@ int switch_p_libstate_clear(void)
 int switch_p_alloc_jobinfo(switch_jobinfo_t **switch_job,
 			   uint32_t job_id, uint32_t step_id)
 {
-	slingshot_jobinfo_t *new = NULL;
+	slingshot_jobinfo_t *new = xmalloc(sizeof(*new));
 
 	xassert(switch_job);
-	new = xcalloc(1, sizeof(slingshot_jobinfo_t));
+
 	new->version = SLINGSHOT_JOBINFO_VERSION;
 	*switch_job = (switch_jobinfo_t *)new;
+
 	return SLURM_SUCCESS;
 }
 
@@ -303,7 +305,7 @@ int switch_p_build_jobinfo(switch_jobinfo_t *switch_job,
 			   slurm_step_layout_t *step_layout,
 			   step_record_t *step_ptr)
 {
-	slingshot_jobinfo_t *job = (slingshot_jobinfo_t *)switch_job;
+	slingshot_jobinfo_t *job = (slingshot_jobinfo_t *) switch_job;
 
 	if (!step_ptr) {
 		fatal("switch_p_build_jobinfo: step_ptr NULL not supported");
@@ -354,7 +356,7 @@ int switch_p_duplicate_jobinfo(switch_jobinfo_t *tmp, switch_jobinfo_t **dest)
 
 void switch_p_free_jobinfo(switch_jobinfo_t *switch_job)
 {
-	slingshot_jobinfo_t *jobinfo = (slingshot_jobinfo_t *)switch_job;
+	slingshot_jobinfo_t *jobinfo = (slingshot_jobinfo_t *) switch_job;
 	xassert(jobinfo);
 	xfree(jobinfo->vnis);
 	xfree(jobinfo->profiles);
