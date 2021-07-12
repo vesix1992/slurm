@@ -489,22 +489,6 @@ error:
 	return SLURM_ERROR;
 }
 
-void switch_p_print_jobinfo(FILE *fp, switch_jobinfo_t *jobinfo)
-{
-	return;
-}
-
-char *switch_p_sprint_jobinfo(switch_jobinfo_t *switch_jobinfo, char *buf,
-		size_t size)
-{
-	if ((buf != NULL) && size) {
-		buf[0] = '\0';
-		return buf;
-	}
-
-	return NULL;
-}
-
 /*
  * switch functions for job initiation
  */
