@@ -35,13 +35,14 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA.
 \*****************************************************************************/
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
 #include "config.h"
 
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #include "src/common/slurm_xlator.h"
+
 #include "switch_hpe_slingshot.h"
 
 /*
