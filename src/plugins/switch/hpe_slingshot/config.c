@@ -169,7 +169,7 @@ done:
 	slingshot_state.vni_table = table;
 
 	log_flag(SWITCH, "version=%d min/max/last=%hu %hu %hu (%zu)",
-		slingshot_state.version, slingshot_state.vni_min, 
+		slingshot_state.version, slingshot_state.vni_min,
 		slingshot_state.vni_max, slingshot_state.vni_last, newsize);
 	return true;
 }
@@ -200,7 +200,7 @@ static bool _config_tcs(const char *token)
 		goto err;
 	arg++;
 	tcs = xstrdup(arg);
-	for (tc = strtok_r(tcs, ":", &save_ptr); tc; 
+	for (tc = strtok_r(tcs, ":", &save_ptr); tc;
 		tc = strtok_r(NULL, ":", &save_ptr)) {
 		for (i = 0; i < num_classes; i++) {
 			if (!strcasecmp(tc, classes[i].label)) {
@@ -226,7 +226,7 @@ err:
 	return false;
 }
 
-// Mapping between Slingshot limit names, slingshot_limits_set_t offset, 
+// Mapping between Slingshot limit names, slingshot_limits_set_t offset,
 // maximum values
 typedef struct limits_table {
 	const char *name;
@@ -380,7 +380,7 @@ extern bool slingshot_setup_config(const char *switch_params)
 	const size_t size_vnis = sizeof(vnis) - 1;
 	const char tcs[] = "tcs";
 	const size_t size_tcs = sizeof(tcs) - 1;
-	
+
 	params = xstrdup(switch_params);
 	for (token = strtok_r(params, ",", &save_ptr); token;
 		token = strtok_r(NULL, ",", &save_ptr)) {

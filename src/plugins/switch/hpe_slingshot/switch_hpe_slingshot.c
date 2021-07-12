@@ -267,7 +267,7 @@ error:
 	if (slingshot_state.vni_table)
 		bit_free(slingshot_state.vni_table);
 	xfree(slingshot_state.user_vnis);
-	
+
 	return SLURM_ERROR;
 }
 
@@ -472,7 +472,7 @@ int switch_p_unpack_jobinfo(switch_jobinfo_t **switch_job, buf_t *buffer,
 	jobinfo->profiles = xcalloc(jobinfo->num_profiles,
 				    sizeof(pals_comm_profile_t));
 	for (pidx = 0; pidx < jobinfo->num_profiles; pidx++) {
-		if (!_unpack_comm_profile(&jobinfo->profiles[pidx], buffer)) 
+		if (!_unpack_comm_profile(&jobinfo->profiles[pidx], buffer))
 			goto unpack_error;
 	}
 

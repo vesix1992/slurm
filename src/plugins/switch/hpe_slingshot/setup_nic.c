@@ -154,7 +154,7 @@ static bool _create_cxi_devs(void)
 			  rc, errno);
 		return false;
 	}
-	
+
 	// If there are no CXI NICs, just say it's unsupported
 	if (!list->count) {
 		error("No CXI devices available");
@@ -231,7 +231,7 @@ static void _create_cxi_descriptor(struct cxi_svc_desc *desc,
 			desc->vnis[v] = job->vnis[v];
 	} else
 		desc->restricted_vnis = false;
-	
+
 
 	// Set up traffic classes
 	if (job->tcs) {
