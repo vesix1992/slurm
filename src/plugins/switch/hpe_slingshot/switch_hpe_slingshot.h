@@ -35,6 +35,9 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA.
 \*****************************************************************************/
 
+#ifndef _SWITCH_HPE_SLINGSHOT_H_
+#define _SWITCH_HPE_SLINGSHOT_H_
+
 #include <stdint.h>
 
 #include <bitstring.h>
@@ -179,3 +182,5 @@ extern bool slingshot_create_services(slingshot_jobinfo_t *job, uint32_t uid,
 	uint16_t step_cpus);
 extern bool slingshot_destroy_services(slingshot_jobinfo_t *job);
 extern void slingshot_free_services(void);
+
+#endif
