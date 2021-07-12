@@ -244,8 +244,8 @@ int switch_p_libstate_restore(char *dir_name, bool recover)
 	safe_unpack32(&slingshot_state.num_user_vnis, state_buf);
 	slingshot_state.user_vnis = NULL;
 	if (slingshot_state.num_user_vnis > 0) {
-		slingshot_state.user_vnis = xmalloc(
-			slingshot_state.num_user_vnis * sizeof(user_vni_t));
+		slingshot_state.user_vnis = xcalloc(
+			slingshot_state.num_user_vnis, sizeof(user_vni_t));
 		for (i = 0; i < slingshot_state.num_user_vnis; i++) {
 			safe_unpack32(
 				&slingshot_state.user_vnis[i].uid, state_buf);
@@ -327,8 +327,8 @@ int switch_p_build_jobinfo(switch_jobinfo_t *switch_job,
 
 int switch_p_duplicate_jobinfo(switch_jobinfo_t *tmp, switch_jobinfo_t **dest)
 {
-	slingshot_jobinfo_t *old = (slingshot_jobinfo_t *)tmp;
-	slingshot_jobinfo_t *new = xmalloc(sizeof(slingshot_jobinfo_t));
+	slingshot_jobinfo_t *old = (slingshot_jobinfo_t *) tmp;
+	slingshot_jobinfo_t *new = xmalloc(sizeof(*new));
 
 	// Copy static (non-malloced) fields
 	memcpy(new, old, sizeof(slingshot_jobinfo_t));
@@ -444,7 +444,7 @@ int switch_p_unpack_jobinfo(switch_jobinfo_t **switch_job, buf_t *buffer,
 			    uint16_t protocol_version)
 {
 	uint32_t pidx = 0;
-	slingshot_jobinfo_t *jobinfo = xmalloc(sizeof(slingshot_jobinfo_t));
+	slingshot_jobinfo_t *jobinfo = xmalloc(sizeof(*jobinfo));
 
 	xassert(switch_job);
 	xassert(buffer);
@@ -469,7 +469,7 @@ int switch_p_unpack_jobinfo(switch_jobinfo_t **switch_job, buf_t *buffer,
 
 	safe_unpack32(&jobinfo->depth, buffer);
 	safe_unpack32(&jobinfo->num_profiles, buffer);
-	jobinfo->profiles = xmalloc(jobinfo->num_profiles *
+	jobinfo->profiles = xcalloc(jobinfo->num_profiles,
 				    sizeof(pals_comm_profile_t));
 	for (pidx = 0; pidx < jobinfo->num_profiles; pidx++) {
 		if (!_unpack_comm_profile(&jobinfo->profiles[pidx], buffer)) 
