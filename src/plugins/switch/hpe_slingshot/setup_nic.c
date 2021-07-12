@@ -421,9 +421,8 @@ extern void slingshot_free_services(void)
 		dlclose(cxi_handle);
 
 	if (cxi_devs) {
-		int i;
-		for (i = 0; i < cxi_ndevs; i++)
+		for (int i = 0; i < cxi_ndevs; i++)
 			free(cxi_devs[i]);
+		free(cxi_devs);
 	}
-	free(cxi_devs);
 }
