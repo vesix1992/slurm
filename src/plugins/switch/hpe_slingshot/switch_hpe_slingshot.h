@@ -139,6 +139,7 @@ typedef struct pals_comm_profile {
 	char device_name[16];   // NIC device name (e.g. "cxi0")
 } pals_comm_profile_t;
 
+//FIXME: plugin should not have a separate version, should use SLURM_PROTOCOL_VERSION
 // Version of the jobinfo structure
 #define SLINGSHOT_JOBINFO_VERSION 1
 
