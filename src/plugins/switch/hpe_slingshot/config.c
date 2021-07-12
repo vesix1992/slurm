@@ -75,38 +75,38 @@ static void _config_defaults(void)
  * Parse the VNI min/max token, with format "vni=<min>-<max>";
  * put results in *minp, *maxp
  */
-static bool _config_vnis(
-	const char *token, uint16_t *min_ptr, uint16_t *max_ptr)
+static bool _config_vnis(const char *token, uint16_t *min_ptr,
+			 uint16_t *max_ptr)
 {
 	char *arg, *end_ptr;
 	int min, max;
 
 	if (!(arg = strchr(token, '=')))
-		goto err;
+		goto error;
 	arg++;
 	end_ptr = NULL;
 	min = strtol(arg, &end_ptr, 10);
 	if (!end_ptr || end_ptr == arg || *end_ptr != '-')
-		goto err;
+		goto error;
 	if (min < SLINGSHOT_VNI_MIN || min > SLINGSHOT_VNI_MAX)
-		goto err;
+		goto error;
 
 	arg = end_ptr + 1;
 	end_ptr = NULL;
 	max = strtol(arg, &end_ptr, 10);
 	if (!end_ptr || end_ptr == arg || *end_ptr != '\0')
-		goto err;
+		goto error;
 	if (max <= min || max > SLINGSHOT_VNI_MAX)
-		goto err;
+		goto error;
 
 	*min_ptr = min;
 	*max_ptr = max;
 	log_flag(SWITCH, "[token=%s]: min/max %hu %hu", token, min, max);
 	return true;
-err:
-	error("Invalid vni token '%s' (example: 'vnis=10-100',"
-		" valid range %d-%d)",
-		token, SLINGSHOT_VNI_MIN, SLINGSHOT_VNI_MAX);
+
+error:
+	error("Invalid vni token '%s' (example: 'vnis=10-100', valid range %d-%d)",
+	      token, SLINGSHOT_VNI_MIN, SLINGSHOT_VNI_MAX);
 	return false;
 }
 
@@ -155,9 +155,8 @@ static bool _setup_vni_table(uint16_t min, uint16_t max)
 	newbits = bit_set_count(table);
 	// Go on even if we're losing VNIs
 	if (newbits != oldbits) {
-		error("WARNING: changing vni_min/max %hu %hu -> %hu %hu;"
-		      " %d VNIs will be lost!",
-			oldmin, oldmax, min, max, oldbits - newbits);
+		error("WARNING: changing vni_min/max %hu %hu -> %hu %hu; %d VNIs will be lost!",
+		      oldmin, oldmax, min, max, oldbits - newbits);
 		lost_vnis = true;
 	}
 
@@ -169,8 +168,8 @@ done:
 	slingshot_state.vni_table = table;
 
 	log_flag(SWITCH, "version=%d min/max/last=%hu %hu %hu (%zu)",
-		slingshot_state.version, slingshot_state.vni_min,
-		slingshot_state.vni_max, slingshot_state.vni_last, newsize);
+		 slingshot_state.version, slingshot_state.vni_min,
+		 slingshot_state.vni_max, slingshot_state.vni_last, newsize);
 	return true;
 }
 
@@ -218,11 +217,11 @@ static bool _config_tcs(const char *token)
 	log_flag(SWITCH, "[token=%s]: tcs %#x", token, tcbits);
 	xfree(tcs);
 	return true;
+
 err:
 	xfree(tcs);
-	error("Invalid traffic class token '%s' (example"
-		" 'tcs=DEDICATED_ACCESS:LOW_LATENCY:BULK_DATA:BEST_EFFORT')",
-		token);
+	error("Invalid traffic class token '%s' (example 'tcs=DEDICATED_ACCESS:LOW_LATENCY:BULK_DATA:BEST_EFFORT')",
+	      token);
 	return false;
 }
 
