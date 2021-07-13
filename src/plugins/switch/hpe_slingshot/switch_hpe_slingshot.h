@@ -40,7 +40,7 @@
 
 #include <stdint.h>
 
-#include <bitstring.h>
+#include "src/common/bitstring.h"
 
 // Version of the state file
 #define SLINGSHOT_STATE_VERSION 1
