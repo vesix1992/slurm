@@ -506,7 +506,7 @@ static void _free_vni(uint16_t vni)
 	if (lost_vnis && (vni < slingshot_state.vni_min ||
 				 vni > slingshot_state.vni_max)) {
 		info("vni %hu: not in current table min/max %hu-%hu",
-			vni, slingshot_state.vni_min, slingshot_state.vni_max);
+		     vni, slingshot_state.vni_min, slingshot_state.vni_max);
 		return;
 	}
 	bitoff_t bit = vni - slingshot_state.vni_min;

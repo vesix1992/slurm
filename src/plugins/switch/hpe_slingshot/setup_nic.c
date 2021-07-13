@@ -319,26 +319,24 @@ out:
  */
 extern bool slingshot_destroy_services(slingshot_jobinfo_t *job)
 {
-	int prof;
-
 	xassert(job);
 
 	if (!cxi_avail)
 		return true;
 
-	for (prof = 0; prof < job->num_profiles; prof++) {
+	for (int prof = 0; prof < job->num_profiles; prof++) {
 		int svc_id = job->profiles[prof].svc_id;
 
 		// Service ID 0 means not a Service
-		if (svc_id <= 0) continue;
+		if (svc_id <= 0)
+			continue;
 
 		debug("Destroying CXI SVC ID %d on NIC %s",
-			svc_id, cxi_devs[prof]->info.device_name);
+		      svc_id, cxi_devs[prof]->info.device_name);
 
-		int rc = cxil_destroy_svc_p(cxi_devs[prof], svc_id);
-		if (rc) {
+		if (cxil_destroy_svc_p(cxi_devs[prof], svc_id)) {
 			error("Failed to destroy CXI Service ID %d: %d",
-				svc_id, errno);
+			      svc_id, errno);
 			return false;
 		}
 	}
