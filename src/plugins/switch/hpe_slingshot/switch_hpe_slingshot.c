@@ -103,6 +103,16 @@ int init(void)
 	return SLURM_SUCCESS;
 }
 
+int fini(void)
+{
+	if (running_in_slurmctld())
+		switch_p_libstate_clear();
+	else
+		slingshot_free_services();
+	return SLURM_SUCCESS;
+}
+
+
 /*
  * Called at slurmctld startup, or when re-reading slurm.conf
  * NOTE: assumed that this runs _after_ switch_p_libstate_restore(),
@@ -487,23 +497,6 @@ unpack_error:
 error:
 	xfree(jobinfo);
 	return SLURM_ERROR;
-}
-
-/*
- * switch functions for job initiation
- */
-int switch_p_node_init(void)
-{
-	return SLURM_SUCCESS;
-}
-
-int switch_p_node_fini(void)
-{
-	if (running_in_slurmctld())
-		switch_p_libstate_clear();
-	else
-		slingshot_free_services();
-	return SLURM_SUCCESS;
 }
 
 /*
