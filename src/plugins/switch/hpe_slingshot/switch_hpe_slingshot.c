@@ -706,21 +706,6 @@ extern int switch_p_job_step_allocated(switch_jobinfo_t *jobinfo,
 	return SLURM_SUCCESS;
 }
 
-extern int switch_p_slurmctld_init(void)
-{
-	return SLURM_SUCCESS;
-}
-
-extern int switch_p_slurmd_init(void)
-{
-	return SLURM_SUCCESS;
-}
-
-extern int switch_p_slurmd_step_init(void)
-{
-	return SLURM_SUCCESS;
-}
-
 extern int switch_p_job_step_pre_suspend(stepd_step_rec_t *job)
 {
 	return SLURM_SUCCESS;
